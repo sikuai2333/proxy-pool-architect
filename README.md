@@ -7,7 +7,7 @@ management workflows only.
 ## Current Scope
 
 The current implementation contains the Phase 0 application skeleton, Phase 1 storage
-foundation, and Phase 2 provider system:
+foundation, Phase 2 provider system, and Phase 3 validation layer:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -21,9 +21,11 @@ foundation, and Phase 2 provider system:
 - score-based best-proxy selection from `elite` then `checked`
 - proxy URL parsing for HTTP, HTTPS, SOCKS4, and SOCKS5 sources
 - `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
+- `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
+- `ValidateService` with bounded concurrency, scoring, and pool movement
 
-Validators, scheduler jobs, scoring services, and proxy APIs are planned for later phases and
-are not implemented yet.
+Scheduler jobs, public proxy APIs, admin APIs, and Dashboard views are planned for later phases
+and are not implemented yet.
 
 ## Setup
 
@@ -98,6 +100,20 @@ Phase 2 adds provider fetching without proxy validation:
 URL list fetching uses configured timeouts and bounded concurrency. It does not retry,
 validate, score, or attempt to bypass remote access controls.
 
+## Validation Layer
+
+Phase 3 adds validation without public proxy APIs:
+
+- `ProtocolValidator` checks supported proxy scheme and endpoint shape.
+- `ConnectivityValidator` checks whether a proxy can reach the configured `TEST_URL`.
+- `AnonymityValidator` checks configured anonymity test responses for leakage headers such as
+  `Via`, `Forwarded`, and `X-Forwarded-For`, plus optional original IP exposure.
+- `ValidateService` validates proxies with a bounded semaphore and moves them from `raw` to
+  `checked`, `elite`, or `dead` based on validation results and score.
+
+Validation does not implement CAPTCHA bypass, anti-bot evasion, target-specific block
+circumvention, or retry loops.
+
 ## Configuration
 
 Configuration is read from environment variables or a local `.env` file. Use `.env.example`
@@ -116,6 +132,12 @@ as the starting point.
 | `PROVIDER_URL_LIST_URLS` | `[]` | JSON array of text proxy list URLs |
 | `PROVIDER_URL_TIMEOUT_SECONDS` | `10` | Timeout for provider URL requests |
 | `PROVIDER_URL_CONCURRENCY` | `5` | Max concurrent provider URL requests |
+| `VALIDATE_CONCURRENCY` | `100` | Max concurrent proxy validations |
+| `VALIDATE_TIMEOUT_SECONDS` | `10` | Timeout for validator HTTP requests |
+| `TEST_URL` | `https://httpbin.org/ip` | Connectivity test endpoint |
+| `ANONYMITY_TEST_URL` | `https://httpbin.org/headers` | Anonymity leakage test endpoint |
+| `VALIDATOR_ORIGINAL_IP` | unset | Optional known client IP for leakage checks |
+| `MIN_ELITE_SCORE` | `80` | Minimum score required for `elite` pool |
 
 ## Safety Boundary
 

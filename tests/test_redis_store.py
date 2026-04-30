@@ -1,62 +1,8 @@
-from collections.abc import Mapping
-
 import pytest
 
 from app.models.proxy import ProxyEndpoint, ProxyFilters
 from app.storage.redis_store import RedisStore
-
-
-class FakeRedis:
-    def __init__(self) -> None:
-        self.values: dict[str, str] = {}
-        self.sorted_sets: dict[str, dict[str, float]] = {}
-
-    async def set(self, name: str, value: str) -> bool:
-        self.values[name] = value
-        return True
-
-    async def get(self, name: str) -> str | None:
-        return self.values.get(name)
-
-    async def delete(self, *names: str) -> int:
-        removed = 0
-        for name in names:
-            if name in self.values:
-                removed += 1
-                del self.values[name]
-        return removed
-
-    async def zadd(self, name: str, mapping: Mapping[str, float]) -> int:
-        sorted_set = self.sorted_sets.setdefault(name, {})
-        added = 0
-        for member, score in mapping.items():
-            if member not in sorted_set:
-                added += 1
-            sorted_set[member] = score
-        return added
-
-    async def zrem(self, name: str, *values: str) -> int:
-        sorted_set = self.sorted_sets.setdefault(name, {})
-        removed = 0
-        for value in values:
-            if value in sorted_set:
-                removed += 1
-                del sorted_set[value]
-        return removed
-
-    async def zcard(self, name: str) -> int:
-        return len(self.sorted_sets.get(name, {}))
-
-    async def zrevrange(self, name: str, start: int, end: int) -> list[str]:
-        sorted_set = self.sorted_sets.get(name, {})
-        members = sorted(sorted_set, key=lambda member: (-sorted_set[member], member))
-        stop = None if end == -1 else end + 1
-        return members[start:stop]
-
-    async def zincrby(self, name: str, amount: float, value: str) -> float:
-        sorted_set = self.sorted_sets.setdefault(name, {})
-        sorted_set[value] = sorted_set.get(value, 0.0) + amount
-        return sorted_set[value]
+from tests.fakes import FakeRedis
 
 
 def make_proxy(proxy_id: str, score: int = 0, country: str | None = None) -> ProxyEndpoint:

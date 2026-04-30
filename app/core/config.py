@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     provider_url_timeout_seconds: float = Field(default=10.0, gt=0)
     provider_url_concurrency: int = Field(default=5, ge=1)
 
+    validate_concurrency: int = Field(default=100, ge=1)
+    validate_timeout_seconds: float = Field(default=10.0, gt=0)
+    test_url: str = "https://httpbin.org/ip"
+    anonymity_test_url: str = "https://httpbin.org/headers"
+    validator_original_ip: str | None = None
+    min_elite_score: int = 80
+
 
 @lru_cache
 def get_settings() -> Settings:

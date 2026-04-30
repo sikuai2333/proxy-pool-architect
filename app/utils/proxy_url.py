@@ -1,5 +1,5 @@
 from typing import cast
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from pydantic import ValidationError
 
@@ -48,3 +48,14 @@ def parse_proxy_url(raw_proxy_url: str, source: str) -> ProxyEndpoint:
 def build_proxy_id(scheme: str, host: str, port: int) -> str:
     normalized_host = host.lower()
     return f"{scheme}-{normalized_host}-{port}"
+
+
+def format_proxy_url(proxy: ProxyEndpoint) -> str:
+    credentials = ""
+    if proxy.username is not None:
+        credentials = quote(proxy.username, safe="")
+        if proxy.password is not None:
+            credentials = f"{credentials}:{quote(proxy.password, safe='')}"
+        credentials = f"{credentials}@"
+
+    return f"{proxy.scheme}://{credentials}{proxy.host}:{proxy.port}"
