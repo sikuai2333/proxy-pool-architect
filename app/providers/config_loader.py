@@ -6,8 +6,10 @@ import yaml
 
 from app.core.config import Settings
 from app.models.provider import ProviderSpec
+from app.models.proxy import ProxyScheme
 from app.providers.base import ProxyProvider
 from app.providers.clash_subscription_provider import ClashSubscriptionProvider
+from app.providers.core_adapter_provider import CoreAdapterProvider
 from app.providers.static_provider import StaticProvider
 from app.providers.tor_provider import TorProvider
 from app.providers.url_list_provider import UrlListProvider
@@ -69,6 +71,20 @@ def _build_provider(spec: ProviderSpec, settings: Settings) -> ProxyProvider:
             socks_port=int(options.get("socks_port", 9050)),
             enabled=spec.enabled,
         )
+    if provider_type in {"core_adapter", "core", "mihomo", "clash_core", "sing_box"}:
+        return CoreAdapterProvider(
+            core_name=str(options.get("core_name", provider_type)),
+            enabled=spec.enabled,
+            command=_optional_string_list(options.get("command")),
+            working_dir=_optional_string(options.get("working_dir")),
+            config_file=_optional_string(options.get("config_file")),
+            local_scheme=_optional_proxy_scheme(options.get("local_scheme")),
+            local_host=str(options.get("local_host", "127.0.0.1")),
+            local_port=_optional_int(options.get("local_port")),
+            readiness_url=_optional_string(options.get("readiness_url")),
+            startup_timeout_seconds=float(options.get("startup_timeout_seconds", 10.0)),
+            shutdown_on_exit=bool(options.get("shutdown_on_exit", True)),
+        )
     if provider_type == "custom":
         if spec.class_path is None:
             raise ProviderConfigError("custom provider requires class_path")
@@ -106,3 +122,30 @@ def _string_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(item) for item in value]
     raise ProviderConfigError("expected a list of strings")
+
+
+def _optional_string_list(value: Any) -> list[str] | None:
+    if value is None:
+        return None
+    return _string_list(value)
+
+
+def _optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _optional_proxy_scheme(value: Any) -> ProxyScheme | None:
+    if value is None:
+        return None
+    scheme = str(value)
+    if scheme not in {"http", "https", "socks4", "socks5"}:
+        raise ProviderConfigError(f"unsupported local_scheme: {scheme}")
+    return cast(ProxyScheme, scheme)

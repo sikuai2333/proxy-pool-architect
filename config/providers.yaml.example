@@ -28,6 +28,23 @@ providers:
       socks_host: "127.0.0.1"
       socks_port: 9050
 
+  # Starts or connects to a local adapter core such as Clash/Mihomo/sing-box.
+  # The core handles node protocols and exposes a local HTTP/SOCKS inbound.
+  - type: core_adapter
+    enabled: false
+    options:
+      core_name: "mihomo"
+      command: ["mihomo", "-f", "config/mihomo.yaml"]
+      config_file: "config/mihomo.yaml"
+      local_host: "127.0.0.1"
+      # If local_scheme/local_port are omitted, mixed-port, socks-port, then port
+      # are inferred from config_file.
+      local_scheme: "http"
+      local_port: 7890
+      readiness_url: "http://127.0.0.1:9090/version"
+      startup_timeout_seconds: 10
+      shutdown_on_exit: true
+
   # Custom providers must be trusted code. By default, only app.providers.* is allowed.
   - type: custom
     enabled: false

@@ -24,6 +24,7 @@ Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production b
 - `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
 - YAML-driven Provider configuration with dynamic trusted provider loading
 - Clash/FlClash subscription parsing for HTTP/SOCKS nodes and local Tor SOCKS Provider
+- CoreAdapter Provider for Clash/Mihomo/sing-box style local adapter cores
 - local CIDR-based Geo enrichment for country and ASN fields
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
@@ -112,6 +113,8 @@ Provider fetching runs without proxy validation:
 - `ClashSubscriptionProvider` parses Clash/FlClash YAML subscriptions and text lists for
   HTTP/SOCKS endpoints.
 - `TorProvider` registers an already-running local Tor SOCKS endpoint.
+- `CoreAdapterProvider` starts or connects to a local adapter core and registers its local
+  HTTP/SOCKS inbound as a normal pool proxy.
 - `ProviderManager` calls enabled providers.
 - `FetchService` deduplicates fetched proxies and writes them to the `raw` pool.
 
@@ -121,6 +124,10 @@ validate, score, or attempt to bypass remote access controls.
 For YAML configuration, copy `config/providers.yaml.example` to `config/providers.yaml`.
 The real config file is ignored by Git because it may contain subscription URLs or credentials.
 See `docs/providers.md` for the schema and dynamic plugin rules.
+
+For VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC, WireGuard, and similar protocols, use a
+CoreAdapter config. The external core handles those protocols and exposes a local HTTP/SOCKS
+port; ProxyPool Architect then validates and serves that local port through the standard pool.
 
 ## Geo Enrichment
 

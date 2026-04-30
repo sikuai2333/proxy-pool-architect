@@ -62,6 +62,46 @@ providers:
       socks_port: 9050
 ```
 
+### core_adapter
+
+Starts or connects to a local adapter core such as Clash, Mihomo, or sing-box. The core is
+responsible for VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC, WireGuard, and similar node
+protocols. ProxyPool Architect only consumes the local HTTP/SOCKS inbound exposed by that core.
+
+```yaml
+providers:
+  - type: core_adapter
+    enabled: true
+    options:
+      core_name: "mihomo"
+      command: ["mihomo", "-f", "config/mihomo.yaml"]
+      config_file: "config/mihomo.yaml"
+      local_host: "127.0.0.1"
+      local_scheme: "http"
+      local_port: 7890
+      readiness_url: "http://127.0.0.1:9090/version"
+      startup_timeout_seconds: 10
+      shutdown_on_exit: true
+```
+
+If `local_scheme` and `local_port` are omitted, the provider tries to infer the inbound from the
+core config using `mixed-port`, `socks-port`, then `port`. Readiness checks are limited to local
+URLs such as `127.0.0.1` or `localhost`.
+
+If the core is managed outside this application, omit `command` and configure only the local
+inbound:
+
+```yaml
+providers:
+  - type: core_adapter
+    enabled: true
+    options:
+      core_name: "external-mihomo"
+      local_scheme: "socks5"
+      local_host: "127.0.0.1"
+      local_port: 7891
+```
+
 ## Custom Providers
 
 Custom providers can be loaded by class path. Dynamic imports execute trusted application code,

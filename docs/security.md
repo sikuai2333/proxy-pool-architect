@@ -25,6 +25,8 @@ Do not use this project for:
 - Load custom provider classes only from trusted packages.
 - Tor support expects a local Tor SOCKS endpoint and does not rotate identities or bypass access
   controls.
+- Core adapter support starts only the command you configure and consumes only local HTTP/SOCKS
+  inbounds. Do not configure adapter cores for unauthorized traffic or protection bypass.
 - Use conservative `PROVIDER_URL_CONCURRENCY` and `VALIDATE_CONCURRENCY` values.
 - Keep `VALIDATE_TIMEOUT_SECONDS` low enough to prevent stuck network work.
 - Keep `COOLDOWN_SECONDS` high enough to avoid repeatedly probing failing proxies.
