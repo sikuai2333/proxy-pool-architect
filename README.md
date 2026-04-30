@@ -8,7 +8,7 @@ management workflows only.
 
 The current implementation contains the Phase 0 application skeleton, Phase 1 storage
 foundation, Phase 2 provider system, Phase 3 validation layer, Phase 4 API service, and
-Phase 5 scheduler integration:
+Phase 5 scheduler integration, and Phase 6 basic dashboard:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -26,9 +26,10 @@ Phase 5 scheduler integration:
 - `ValidateService` with bounded concurrency, scoring, and pool movement
 - `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
 - APScheduler-backed fetch and validation jobs, disabled by default
+- lightweight `/dashboard` page for counts, source distribution, latency, success rate, and delete actions
 
-Admin-only workflows, Dashboard views, and production observability are planned for later
-phases and are not implemented yet.
+Admin-only workflows and production observability are planned for later phases and are not
+implemented yet.
 
 ## Setup
 
@@ -180,6 +181,18 @@ Registered jobs:
 
 Jobs use `max_instances=1`, coalescing, configured network timeouts, bounded validation
 concurrency, and no retry loops.
+
+## Dashboard
+
+Phase 6 adds a lightweight server-rendered dashboard at:
+
+```bash
+http://localhost:8000/dashboard
+```
+
+It shows pool counts, provider source distribution, average latency, success rate, and a proxy
+table with delete actions. It uses the existing API and storage services and does not add a
+frontend framework dependency.
 
 ## Configuration
 

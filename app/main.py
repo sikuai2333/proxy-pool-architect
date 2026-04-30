@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_health import router as health_router
 from app.api.routes_proxy import router as proxy_router
 from app.api.routes_stats import router as stats_router
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     )
     app.state.store = RedisStore.from_url(settings.redis_url)
     app.state.scheduler = SchedulerService(settings, app.state.store)
+    app.include_router(dashboard_router)
     app.include_router(health_router)
     app.include_router(proxy_router)
     app.include_router(stats_router)
