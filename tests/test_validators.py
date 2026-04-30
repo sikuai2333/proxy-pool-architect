@@ -173,7 +173,7 @@ def test_validate_service_moves_successful_elite_proxy_to_elite_pool() -> None:
     asyncio.run(run())
 
 
-def test_validate_service_moves_failed_proxy_to_dead_pool() -> None:
+def test_validate_service_moves_failed_proxy_to_cooldown_pool() -> None:
     async def run() -> None:
         store = RedisStore(FakeRedis())
         proxy = await store.add_proxy("raw", make_proxy())
@@ -200,8 +200,50 @@ def test_validate_service_moves_failed_proxy_to_dead_pool() -> None:
 
         outcome = await service.validate_proxy(proxy, from_pool="raw")
 
-        assert outcome.target_pool == "dead"
+        assert outcome.target_pool == "cooldown"
         assert outcome.proxy.fail_count == 1
+        assert outcome.proxy.consecutive_fail_count == 1
+        assert outcome.proxy.cooldown_until is not None
+        assert await store.list_proxies("raw") == []
+        assert [stored.id for stored in await store.list_proxies("cooldown")] == [proxy.id]
+
+    asyncio.run(run())
+
+
+def test_validate_service_moves_repeated_failure_to_dead_pool() -> None:
+    async def run() -> None:
+        store = RedisStore(FakeRedis())
+        proxy = await store.add_proxy(
+            "raw",
+            make_proxy().model_copy(update={"fail_count": 4, "consecutive_fail_count": 4}),
+        )
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection failed", request=request)
+
+        service = ValidateService(
+            store=store,
+            protocol_validator=ProtocolValidator(),
+            connectivity_validator=ConnectivityValidator(
+                test_url="https://example.test/ip",
+                timeout_seconds=1,
+                transport=httpx.MockTransport(handler),
+            ),
+            anonymity_validator=AnonymityValidator(
+                test_url="https://example.test/headers",
+                timeout_seconds=1,
+                transport=httpx.MockTransport(lambda request: httpx.Response(200, json={})),
+            ),
+            concurrency=2,
+            min_elite_score=80,
+        )
+
+        outcome = await service.validate_proxy(proxy, from_pool="raw")
+
+        assert outcome.target_pool == "dead"
+        assert outcome.proxy.fail_count == 5
+        assert outcome.proxy.consecutive_fail_count == 5
+        assert outcome.proxy.cooldown_until is None
         assert await store.list_proxies("raw") == []
         assert [stored.id for stored in await store.list_proxies("dead")] == [proxy.id]
 

@@ -35,7 +35,7 @@ async def test_add_get_list_and_count_by_pool(store: RedisStore) -> None:
 
     assert stored == low_score
     assert [proxy.id for proxy in listed] == [high_score.id, low_score.id]
-    assert counts == {"raw": 2, "checked": 0, "elite": 0, "dead": 0}
+    assert counts == {"raw": 2, "checked": 0, "elite": 0, "dead": 0, "cooldown": 0}
 
 
 async def test_move_proxy_updates_pool_and_indexes(store: RedisStore) -> None:

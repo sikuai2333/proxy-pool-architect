@@ -23,6 +23,7 @@ Do not use this project for:
 - Keep `PROVIDER_URL_LISTS_ENABLED=false` unless the configured URLs are trusted and allowed.
 - Use conservative `PROVIDER_URL_CONCURRENCY` and `VALIDATE_CONCURRENCY` values.
 - Keep `VALIDATE_TIMEOUT_SECONDS` low enough to prevent stuck network work.
+- Keep `COOLDOWN_SECONDS` high enough to avoid repeatedly probing failing proxies.
 - Set `VALIDATOR_ORIGINAL_IP` only when you intentionally want leakage checks to detect that IP.
 - Do not store paid proxy credentials, API tokens, cookies, or secrets in Git.
 - Use environment variables or a secrets manager for any production credentials.

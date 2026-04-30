@@ -4,6 +4,7 @@ from app.models.proxy import ProxyEndpoint, ProxyPool
 from app.models.validation import ProxyValidationOutcome, ValidationResult
 from app.services.scoring_service import apply_validation_score
 from app.storage.redis_store import RedisStore
+from app.utils.time import utc_plus_seconds_iso
 from app.validators.anonymity import AnonymityValidator
 from app.validators.connectivity import ConnectivityValidator
 from app.validators.protocol import ProtocolValidator
@@ -18,6 +19,7 @@ class ValidateService:
         anonymity_validator: AnonymityValidator,
         concurrency: int = 100,
         min_elite_score: int = 80,
+        cooldown_seconds: int = 1800,
     ) -> None:
         self._store = store
         self._protocol_validator = protocol_validator
@@ -25,6 +27,7 @@ class ValidateService:
         self._anonymity_validator = anonymity_validator
         self._semaphore = asyncio.Semaphore(concurrency)
         self._min_elite_score = min_elite_score
+        self._cooldown_seconds = cooldown_seconds
 
     async def validate_pool(
         self,
@@ -53,6 +56,7 @@ class ValidateService:
 
             updated_proxy = apply_validation_score(proxy, protocol, connectivity, anonymity)
             target_pool = self._target_pool(updated_proxy, protocol, connectivity, anonymity)
+            updated_proxy = self._apply_target_state(updated_proxy, target_pool)
             await self._store.remove_proxy(from_pool, proxy.id)
             stored_proxy = await self._store.add_proxy(target_pool, updated_proxy)
 
@@ -72,8 +76,12 @@ class ValidateService:
         connectivity: ValidationResult | None,
         anonymity: ValidationResult | None,
     ) -> ProxyPool:
-        if not protocol.ok or connectivity is None or not connectivity.ok:
+        if not protocol.ok:
             return "dead"
+        if connectivity is None or not connectivity.ok:
+            if proxy.consecutive_fail_count >= 5:
+                return "dead"
+            return "cooldown"
         if (
             anonymity is not None
             and anonymity.ok
@@ -82,3 +90,14 @@ class ValidateService:
         ):
             return "elite"
         return "checked"
+
+    def _apply_target_state(
+        self,
+        proxy: ProxyEndpoint,
+        target_pool: ProxyPool,
+    ) -> ProxyEndpoint:
+        if target_pool == "cooldown":
+            return proxy.model_copy(
+                update={"cooldown_until": utc_plus_seconds_iso(self._cooldown_seconds)}
+            )
+        return proxy.model_copy(update={"cooldown_until": None})

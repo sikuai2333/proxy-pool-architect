@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     anonymity_test_url: str = "https://httpbin.org/headers"
     validator_original_ip: str | None = None
     min_elite_score: int = 80
+    cooldown_seconds: int = Field(default=1800, ge=1)
 
     scheduler_enabled: bool = False
     fetch_interval_seconds: int = Field(default=1800, ge=1)

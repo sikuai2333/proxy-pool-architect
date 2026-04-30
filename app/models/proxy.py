@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 ProxyScheme = Literal["http", "https", "socks4", "socks5"]
 ProxyAnonymity = Literal["unknown", "transparent", "anonymous", "elite"]
-ProxyPool = Literal["raw", "checked", "elite", "dead"]
+ProxyPool = Literal["raw", "checked", "elite", "dead", "cooldown"]
 ProxyStatus = Literal["raw", "checked", "elite", "dead", "cooldown"]
 
 
@@ -24,11 +24,13 @@ class ProxyEndpoint(BaseModel):
     latency_ms: int | None = Field(default=None, ge=0)
     success_count: int = Field(default=0, ge=0)
     fail_count: int = Field(default=0, ge=0)
+    consecutive_fail_count: int = Field(default=0, ge=0)
     score: int = 0
 
     last_checked_at: str | None = None
     last_success_at: str | None = None
     last_error: str | None = None
+    cooldown_until: str | None = None
 
     status: ProxyStatus = "raw"
 

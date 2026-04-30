@@ -110,6 +110,27 @@ def test_report_proxy_updates_score_and_counts() -> None:
     assert payload["success_count"] == 3
 
 
+def test_report_proxy_moves_repeated_failure_to_cooldown() -> None:
+    client, store = make_client()
+    proxy = make_proxy("http-1.2.3.4-8080", score=50).model_copy(
+        update={"fail_count": 2, "consecutive_fail_count": 2}
+    )
+    asyncio.run(store.add_proxy("checked", proxy))
+
+    response = client.post(
+        "/proxy/report",
+        json={"proxy_id": "http-1.2.3.4-8080", "ok": False, "error": "timeout"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "cooldown"
+    assert payload["fail_count"] == 3
+    assert [stored.id for stored in asyncio.run(store.list_proxies("cooldown"))] == [
+        "http-1.2.3.4-8080"
+    ]
+
+
 def test_stats_returns_pool_counts_and_rates() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080")))

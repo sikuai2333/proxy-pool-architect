@@ -17,6 +17,7 @@ def apply_validation_score(
 
     connectivity_ok = connectivity is not None and connectivity.ok
     fail_count = proxy.fail_count if connectivity_ok else proxy.fail_count + 1
+    consecutive_fail_count = 0 if connectivity_ok else proxy.consecutive_fail_count + 1
     success_count = proxy.success_count + 1 if connectivity_ok else proxy.success_count
     last_error = None if connectivity_ok else _first_error(protocol, connectivity)
 
@@ -24,6 +25,7 @@ def apply_validation_score(
         "score": score,
         "success_count": success_count,
         "fail_count": fail_count,
+        "consecutive_fail_count": consecutive_fail_count,
         "last_checked_at": now,
         "last_error": last_error,
     }

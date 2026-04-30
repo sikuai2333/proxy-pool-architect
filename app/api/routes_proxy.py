@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 from app.api.dependencies import get_store
+from app.core.config import get_settings
 from app.models.api import (
     DeleteProxyResponse,
     ProxyListResponse,
@@ -21,7 +22,7 @@ router = APIRouter(tags=["proxy"])
 
 
 def get_proxy_service(store: Annotated[RedisStore, Depends(get_store)]) -> ProxyService:
-    return ProxyService(store)
+    return ProxyService(store, cooldown_seconds=get_settings().cooldown_seconds)
 
 
 @router.get(

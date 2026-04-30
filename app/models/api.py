@@ -20,10 +20,12 @@ class ProxyResponse(BaseModel):
     latency_ms: int | None = None
     success_count: int
     fail_count: int
+    consecutive_fail_count: int
     score: int
     last_checked_at: str | None = None
     last_success_at: str | None = None
     last_error: str | None = None
+    cooldown_until: str | None = None
     status: ProxyStatus
 
     @classmethod
@@ -41,10 +43,12 @@ class ProxyResponse(BaseModel):
             latency_ms=proxy.latency_ms,
             success_count=proxy.success_count,
             fail_count=proxy.fail_count,
+            consecutive_fail_count=proxy.consecutive_fail_count,
             score=proxy.score,
             last_checked_at=proxy.last_checked_at,
             last_success_at=proxy.last_success_at,
             last_error=proxy.last_error,
+            cooldown_until=proxy.cooldown_until,
             status=proxy.status,
         )
 

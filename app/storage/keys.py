@@ -1,6 +1,6 @@
 from app.models.proxy import ProxyPool
 
-POOL_NAMES: tuple[ProxyPool, ...] = ("raw", "checked", "elite", "dead")
+POOL_NAMES: tuple[ProxyPool, ...] = ("raw", "checked", "elite", "dead", "cooldown")
 SELECTION_POOLS: tuple[ProxyPool, ...] = ("elite", "checked")
 
 

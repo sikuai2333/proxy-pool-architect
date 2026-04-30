@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.core.config import Settings
 from app.providers.manager import ProviderManager
+from app.services.cooldown_service import CooldownService
 from app.services.fetch_service import FetchService
 from app.services.validate_service import ValidateService
 from app.storage.redis_store import RedisStore
@@ -106,6 +107,10 @@ class SchedulerService:
                 ),
                 concurrency=self._settings.validate_concurrency,
                 min_elite_score=self._settings.min_elite_score,
+                cooldown_seconds=self._settings.cooldown_seconds,
+            )
+            released = await CooldownService(self._store).release_expired(
+                limit=self._settings.validate_batch_size,
             )
             outcomes = await service.validate_pool(
                 pool="raw",
@@ -116,7 +121,8 @@ class SchedulerService:
             return
 
         logger.info(
-            "Validate job finished: count={} duration_ms={}",
+            "Validate job finished: released={} validated={} duration_ms={}",
+            len(released),
             len(outcomes),
             self._elapsed_ms(started_at),
         )

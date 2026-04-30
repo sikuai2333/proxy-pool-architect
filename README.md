@@ -18,12 +18,13 @@ Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production b
 - pytest, ruff, and mypy configuration
 - `ProxyEndpoint` and `ProxyFilters` models
 - Redis key helpers and JSON serialization
-- `RedisStore` operations for `raw`, `checked`, `elite`, and `dead` pools
+- `RedisStore` operations for `raw`, `checked`, `elite`, `dead`, and `cooldown` pools
 - score-based best-proxy selection from `elite` then `checked`
 - proxy URL parsing for HTTP, HTTPS, SOCKS4, and SOCKS5 sources
 - `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
+- cooldown handling for failed proxies and scheduled release back to `raw`
 - `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
 - APScheduler-backed fetch and validation jobs, disabled by default
 - lightweight `/dashboard` page for counts, source distribution, latency, success rate, and delete actions
@@ -123,6 +124,15 @@ Phase 3 adds validation for stored proxies:
 
 Validation does not implement CAPTCHA bypass, anti-bot evasion, target-specific block
 circumvention, or retry loops.
+
+## Cooldown
+
+Failed validation moves proxies into the `cooldown` pool unless the proxy has reached the dead
+threshold. Repeated failures with `consecutive_fail_count >= 5` move a proxy to `dead`; a
+successful validation or report resets the consecutive failure counter.
+
+The scheduler releases expired cooldown proxies back to `raw` before each validation run. The
+cooldown duration is controlled by `COOLDOWN_SECONDS`.
 
 ## API
 
@@ -255,6 +265,7 @@ as the starting point.
 | `ANONYMITY_TEST_URL` | `https://httpbin.org/headers` | Anonymity leakage test endpoint |
 | `VALIDATOR_ORIGINAL_IP` | unset | Optional known client IP for leakage checks |
 | `MIN_ELITE_SCORE` | `80` | Minimum score required for `elite` pool |
+| `COOLDOWN_SECONDS` | `1800` | Cooldown duration after failed validation/reporting |
 | `SCHEDULER_ENABLED` | `false` | Enable background scheduler |
 | `FETCH_INTERVAL_SECONDS` | `1800` | Fetch job interval |
 | `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |
