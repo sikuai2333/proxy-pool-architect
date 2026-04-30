@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     provider_url_list_urls: list[str] = Field(default_factory=list)
     provider_url_timeout_seconds: float = Field(default=10.0, gt=0)
     provider_url_concurrency: int = Field(default=5, ge=1)
+    provider_config_file: str = "config/providers.yaml"
+    provider_plugin_allowed_prefixes: list[str] = Field(default_factory=lambda: ["app.providers."])
+
+    geo_enabled: bool = False
+    geo_file: str = "config/geo.csv"
 
     validate_concurrency: int = Field(default=100, ge=1)
     validate_timeout_seconds: float = Field(default=10.0, gt=0)

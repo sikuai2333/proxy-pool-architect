@@ -5,6 +5,7 @@ from app.providers.manager import ProviderManager
 from app.providers.static_provider import StaticProvider
 from app.providers.url_list_provider import UrlListProvider
 from app.services.fetch_service import FetchService
+from app.services.geo_service import GeoResolver
 from app.storage.redis_store import RedisStore
 from tests.fakes import FakeRedis
 
@@ -25,6 +26,22 @@ def test_static_provider_parses_configured_proxies() -> None:
             "http-1.2.3.4-8080",
             "socks5-1.2.3.4-1080",
         ]
+
+    asyncio.run(run())
+
+
+def test_fetch_service_enriches_geo_before_writing_to_raw_pool(tmp_path) -> None:
+    async def run() -> None:
+        geo_file = tmp_path / "geo.csv"
+        geo_file.write_text("cidr,country,asn\n1.2.3.0/24,US,AS64500\n", encoding="utf-8")
+        store = RedisStore(FakeRedis())
+        manager = ProviderManager([StaticProvider(["http://1.2.3.4:8080"])])
+        service = FetchService(manager, store, geo_resolver=GeoResolver.from_csv(str(geo_file)))
+
+        stored = await service.fetch_to_raw_pool()
+
+        assert stored[0].country == "US"
+        assert stored[0].asn == "AS64500"
 
     asyncio.run(run())
 

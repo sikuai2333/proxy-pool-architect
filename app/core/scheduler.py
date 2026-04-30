@@ -8,6 +8,7 @@ from app.core.config import Settings
 from app.providers.manager import ProviderManager
 from app.services.cooldown_service import CooldownService
 from app.services.fetch_service import FetchService
+from app.services.geo_service import GeoResolver
 from app.services.validate_service import ValidateService
 from app.storage.redis_store import RedisStore
 from app.validators.anonymity import AnonymityValidator
@@ -77,7 +78,11 @@ class SchedulerService:
         logger.info("Fetch job started")
         try:
             provider_manager = ProviderManager.from_settings(self._settings)
-            service = FetchService(provider_manager, self._store)
+            service = FetchService(
+                provider_manager,
+                self._store,
+                geo_resolver=GeoResolver.from_settings(self._settings),
+            )
             proxies = await service.fetch_to_raw_pool()
         except Exception as exc:
             logger.warning("Fetch job failed: {}", exc.__class__.__name__)

@@ -22,6 +22,9 @@ Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production b
 - score-based best-proxy selection from `elite` then `checked`
 - proxy URL parsing for HTTP, HTTPS, SOCKS4, and SOCKS5 sources
 - `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
+- YAML-driven Provider configuration with dynamic trusted provider loading
+- Clash/FlClash subscription parsing for HTTP/SOCKS nodes and local Tor SOCKS Provider
+- local CIDR-based Geo enrichment for country and ASN fields
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
 - cooldown handling for failed proxies and scheduled release back to `raw`
@@ -102,15 +105,28 @@ Redis keys are centralized in `app/storage/keys.py`, and proxy records are store
 
 ## Provider Layer
 
-Phase 2 adds provider fetching without proxy validation:
+Provider fetching runs without proxy validation:
 
 - `StaticProvider` parses configured proxy URLs from `PROVIDER_STATIC_PROXIES`.
 - `UrlListProvider` fetches configured text URLs from `PROVIDER_URL_LIST_URLS`.
+- `ClashSubscriptionProvider` parses Clash/FlClash YAML subscriptions and text lists for
+  HTTP/SOCKS endpoints.
+- `TorProvider` registers an already-running local Tor SOCKS endpoint.
 - `ProviderManager` calls enabled providers.
 - `FetchService` deduplicates fetched proxies and writes them to the `raw` pool.
 
 URL list fetching uses configured timeouts and bounded concurrency. It does not retry,
 validate, score, or attempt to bypass remote access controls.
+
+For YAML configuration, copy `config/providers.yaml.example` to `config/providers.yaml`.
+The real config file is ignored by Git because it may contain subscription URLs or credentials.
+See `docs/providers.md` for the schema and dynamic plugin rules.
+
+## Geo Enrichment
+
+Optional Geo enrichment reads a local CSV file with `cidr,country,asn` columns and annotates
+fetched proxies before they are stored in `raw`. It only matches literal IP hosts and does not
+perform DNS or external Geo API lookups.
 
 ## Validation Layer
 
@@ -269,6 +285,10 @@ as the starting point.
 | `PROVIDER_URL_LIST_URLS` | `[]` | JSON array of text proxy list URLs |
 | `PROVIDER_URL_TIMEOUT_SECONDS` | `10` | Timeout for provider URL requests |
 | `PROVIDER_URL_CONCURRENCY` | `5` | Max concurrent provider URL requests |
+| `PROVIDER_CONFIG_FILE` | `config/providers.yaml` | Optional YAML provider config |
+| `PROVIDER_PLUGIN_ALLOWED_PREFIXES` | `["app.providers."]` | Allowed dynamic provider class prefixes |
+| `GEO_ENABLED` | `false` | Enable local CIDR Geo enrichment |
+| `GEO_FILE` | `config/geo.csv` | Local Geo CSV file |
 | `VALIDATE_CONCURRENCY` | `100` | Max concurrent proxy validations |
 | `VALIDATE_TIMEOUT_SECONDS` | `10` | Timeout for validator HTTP requests |
 | `TEST_URL` | `https://httpbin.org/ip` | Connectivity test endpoint |

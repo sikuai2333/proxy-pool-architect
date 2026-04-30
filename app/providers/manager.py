@@ -1,6 +1,7 @@
 from app.core.config import Settings
 from app.models.proxy import ProxyEndpoint
 from app.providers.base import ProxyProvider
+from app.providers.config_loader import build_providers_from_specs, load_provider_specs
 from app.providers.static_provider import StaticProvider
 from app.providers.url_list_provider import UrlListProvider
 
@@ -11,6 +12,10 @@ class ProviderManager:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "ProviderManager":
+        provider_specs = load_provider_specs(settings.provider_config_file)
+        if provider_specs:
+            return cls(build_providers_from_specs(provider_specs, settings))
+
         return cls(
             providers=[
                 StaticProvider(

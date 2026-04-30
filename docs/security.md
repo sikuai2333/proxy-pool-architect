@@ -21,6 +21,10 @@ Do not use this project for:
 - Keep `SCHEDULER_ENABLED=false` unless background fetching and validation are explicitly needed.
 - Configure only proxy sources you are authorized to use.
 - Keep `PROVIDER_URL_LISTS_ENABLED=false` unless the configured URLs are trusted and allowed.
+- Keep `config/providers.yaml` out of Git; it may contain subscription URLs or credentials.
+- Load custom provider classes only from trusted packages.
+- Tor support expects a local Tor SOCKS endpoint and does not rotate identities or bypass access
+  controls.
 - Use conservative `PROVIDER_URL_CONCURRENCY` and `VALIDATE_CONCURRENCY` values.
 - Keep `VALIDATE_TIMEOUT_SECONDS` low enough to prevent stuck network work.
 - Keep `COOLDOWN_SECONDS` high enough to avoid repeatedly probing failing proxies.

@@ -43,3 +43,8 @@ Thumbs.db
 # Docker and local volumes
 .docker/
 docker-data/
+
+# Local provider and Geo data may contain credentials or licensed datasets
+config/providers.yaml
+config/geo.csv
+!config/*.example

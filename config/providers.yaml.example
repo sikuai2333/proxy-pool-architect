@@ -1,0 +1,36 @@
+providers:
+  - type: static
+    enabled: true
+    options:
+      proxies:
+        - "http://127.0.0.1:8080"
+
+  - type: url_list
+    enabled: false
+    options:
+      urls:
+        - "https://example.com/proxies.txt"
+      timeout_seconds: 10
+      concurrency: 5
+
+  - type: clash_subscription
+    enabled: false
+    options:
+      urls: []
+      files:
+        - "config/clash-subscription.yaml"
+      timeout_seconds: 10
+      concurrency: 3
+
+  - type: tor
+    enabled: false
+    options:
+      socks_host: "127.0.0.1"
+      socks_port: 9050
+
+  # Custom providers must be trusted code. By default, only app.providers.* is allowed.
+  - type: custom
+    enabled: false
+    class_path: "app.providers.static_provider.StaticProvider"
+    options:
+      proxies: []
