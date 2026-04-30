@@ -1,0 +1,28 @@
+from app.core.config import Settings
+from app.core.scheduler import FETCH_JOB_ID, VALIDATE_JOB_ID, SchedulerService
+from app.storage.redis_store import RedisStore
+from tests.fakes import FakeRedis
+
+
+def test_scheduler_registers_fetch_and_validate_jobs_without_running_them() -> None:
+    settings = Settings(
+        scheduler_enabled=True,
+        fetch_interval_seconds=60,
+        validate_interval_seconds=30,
+    )
+    scheduler = SchedulerService(settings, RedisStore(FakeRedis()))
+
+    scheduler.register_jobs()
+
+    assert set(scheduler.job_ids) == {FETCH_JOB_ID, VALIDATE_JOB_ID}
+    assert scheduler.running is False
+
+
+def test_scheduler_start_is_noop_when_disabled() -> None:
+    settings = Settings(scheduler_enabled=False)
+    scheduler = SchedulerService(settings, RedisStore(FakeRedis()))
+
+    scheduler.start()
+
+    assert scheduler.running is False
+    assert scheduler.job_ids == []

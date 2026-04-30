@@ -7,7 +7,8 @@ management workflows only.
 ## Current Scope
 
 The current implementation contains the Phase 0 application skeleton, Phase 1 storage
-foundation, Phase 2 provider system, Phase 3 validation layer, and Phase 4 API service:
+foundation, Phase 2 provider system, Phase 3 validation layer, Phase 4 API service, and
+Phase 5 scheduler integration:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -24,9 +25,10 @@ foundation, Phase 2 provider system, Phase 3 validation layer, and Phase 4 API s
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
 - `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
+- APScheduler-backed fetch and validation jobs, disabled by default
 
-Scheduler jobs, admin-only workflows, and Dashboard views are planned for later phases and are
-not implemented yet.
+Admin-only workflows, Dashboard views, and production observability are planned for later
+phases and are not implemented yet.
 
 ## Setup
 
@@ -159,6 +161,26 @@ curl -X DELETE "http://localhost:8000/proxy/http-1.2.3.4-8080"
 
 JSON proxy responses use a public schema and do not include stored proxy passwords.
 
+## Scheduler
+
+Phase 5 adds APScheduler integration for background fetch and validation work. The scheduler is
+disabled by default so tests and local API-only runs do not perform network work.
+
+Enable it explicitly:
+
+```bash
+SCHEDULER_ENABLED=true uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Registered jobs:
+
+- `fetch_proxies`: runs every `FETCH_INTERVAL_SECONDS` and writes fetched proxies to `raw`.
+- `validate_proxies`: runs every `VALIDATE_INTERVAL_SECONDS` and validates at most
+  `VALIDATE_BATCH_SIZE` raw proxies per run.
+
+Jobs use `max_instances=1`, coalescing, configured network timeouts, bounded validation
+concurrency, and no retry loops.
+
 ## Configuration
 
 Configuration is read from environment variables or a local `.env` file. Use `.env.example`
@@ -183,6 +205,10 @@ as the starting point.
 | `ANONYMITY_TEST_URL` | `https://httpbin.org/headers` | Anonymity leakage test endpoint |
 | `VALIDATOR_ORIGINAL_IP` | unset | Optional known client IP for leakage checks |
 | `MIN_ELITE_SCORE` | `80` | Minimum score required for `elite` pool |
+| `SCHEDULER_ENABLED` | `false` | Enable background scheduler |
+| `FETCH_INTERVAL_SECONDS` | `1800` | Fetch job interval |
+| `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |
+| `VALIDATE_BATCH_SIZE` | `100` | Max raw proxies validated per job run |
 
 ## Safety Boundary
 

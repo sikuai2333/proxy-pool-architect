@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     validator_original_ip: str | None = None
     min_elite_score: int = 80
 
+    scheduler_enabled: bool = False
+    fetch_interval_seconds: int = Field(default=1800, ge=1)
+    validate_interval_seconds: int = Field(default=600, ge=1)
+    validate_batch_size: int = Field(default=100, ge=1)
+
 
 @lru_cache
 def get_settings() -> Settings:
