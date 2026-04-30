@@ -92,3 +92,10 @@ async def test_update_score_changes_payload_and_sorted_index(store: RedisStore) 
     assert updated.score == 40
     assert [proxy.id for proxy in listed] == [first.id, second.id]
     assert await store.update_score("missing", 10) is None
+
+
+async def test_session_affinity_binding_round_trips_proxy_id(store: RedisStore) -> None:
+    await store.bind_session_proxy("task-1", "http-127.0.0.1-8080", ttl_seconds=60)
+
+    assert await store.get_session_proxy_id("task-1") == "http-127.0.0.1-8080"
+    assert await store.get_session_proxy_id("missing") is None

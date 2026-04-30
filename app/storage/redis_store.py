@@ -4,12 +4,22 @@ from typing import Any, Protocol, cast
 from redis.asyncio import Redis
 
 from app.models.proxy import ProxyEndpoint, ProxyFilters, ProxyPool
-from app.storage.keys import POOL_NAMES, SELECTION_POOLS, pool_index_key, proxy_key, proxy_pool_key
+from app.storage.keys import (
+    POOL_NAMES,
+    SELECTION_POOLS,
+    pool_index_key,
+    proxy_key,
+    proxy_pool_key,
+    session_proxy_key,
+)
 from app.storage.serializers import deserialize_proxy, serialize_proxy
 
 
 class RedisClient(Protocol):
     async def set(self, name: str, value: str) -> Any:
+        ...
+
+    async def setex(self, name: str, time: int, value: str) -> Any:
         ...
 
     async def get(self, name: str) -> str | None:
@@ -125,6 +135,17 @@ class RedisStore:
                 if self._matches_filters(proxy, active_filters):
                     return proxy
         return None
+
+    async def bind_session_proxy(
+        self,
+        session_id: str,
+        proxy_id: str,
+        ttl_seconds: int,
+    ) -> None:
+        await self._client.setex(session_proxy_key(session_id), ttl_seconds, proxy_id)
+
+    async def get_session_proxy_id(self, session_id: str) -> str | None:
+        return await self._client.get(session_proxy_key(session_id))
 
     async def update_score(self, proxy_id: str, score_delta: int) -> ProxyEndpoint | None:
         located = await self._get_proxy_with_pool(proxy_id)

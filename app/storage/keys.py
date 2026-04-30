@@ -14,3 +14,7 @@ def pool_index_key(pool: ProxyPool) -> str:
 
 def proxy_pool_key(proxy_id: str) -> str:
     return f"proxy:pool:{proxy_id}"
+
+
+def session_proxy_key(session_id: str) -> str:
+    return f"proxy:session:{session_id}"

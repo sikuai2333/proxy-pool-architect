@@ -25,6 +25,7 @@ Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production b
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
 - cooldown handling for failed proxies and scheduled release back to `raw`
+- optional `session_id` affinity for stable per-task proxy selection
 - `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
 - APScheduler-backed fetch and validation jobs, disabled by default
 - lightweight `/dashboard` page for counts, source distribution, latency, success rate, and delete actions
@@ -141,6 +142,15 @@ Get one proxy as JSON:
 ```bash
 curl "http://localhost:8000/proxy?scheme=http&country=US&min_score=80"
 ```
+
+Use session affinity for task-level stable proxy selection:
+
+```bash
+curl "http://localhost:8000/proxy?session_id=task-123"
+```
+
+When the pinned proxy is still available and matches the filters, the same `session_id` returns
+the same proxy until `SESSION_AFFINITY_TTL_SECONDS` expires.
 
 Get one proxy as text:
 
@@ -266,6 +276,7 @@ as the starting point.
 | `VALIDATOR_ORIGINAL_IP` | unset | Optional known client IP for leakage checks |
 | `MIN_ELITE_SCORE` | `80` | Minimum score required for `elite` pool |
 | `COOLDOWN_SECONDS` | `1800` | Cooldown duration after failed validation/reporting |
+| `SESSION_AFFINITY_TTL_SECONDS` | `3600` | TTL for `session_id` proxy affinity |
 | `SCHEDULER_ENABLED` | `false` | Enable background scheduler |
 | `FETCH_INTERVAL_SECONDS` | `1800` | Fetch job interval |
 | `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |

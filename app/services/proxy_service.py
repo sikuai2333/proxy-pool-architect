@@ -5,12 +5,34 @@ from app.utils.time import utc_now_iso, utc_plus_seconds_iso
 
 
 class ProxyService:
-    def __init__(self, store: RedisStore, cooldown_seconds: int = 1800) -> None:
+    def __init__(
+        self,
+        store: RedisStore,
+        cooldown_seconds: int = 1800,
+        session_affinity_ttl_seconds: int = 3600,
+    ) -> None:
         self._store = store
         self._cooldown_seconds = cooldown_seconds
+        self._session_affinity_ttl_seconds = session_affinity_ttl_seconds
 
-    async def get_proxy(self, filters: ProxyFilters) -> ProxyEndpoint | None:
-        return await self._store.get_best_proxy(filters)
+    async def get_proxy(
+        self,
+        filters: ProxyFilters,
+        session_id: str | None = None,
+    ) -> ProxyEndpoint | None:
+        if session_id is not None:
+            pinned_proxy = await self._get_session_proxy(session_id, filters)
+            if pinned_proxy is not None:
+                return pinned_proxy
+
+        proxy = await self._store.get_best_proxy(filters)
+        if proxy is not None and session_id is not None:
+            await self._store.bind_session_proxy(
+                session_id=session_id,
+                proxy_id=proxy.id,
+                ttl_seconds=self._session_affinity_ttl_seconds,
+            )
+        return proxy
 
     async def list_proxies(
         self,
@@ -73,6 +95,24 @@ class ProxyService:
 
     async def delete_proxy(self, proxy_id: str) -> bool:
         return await self._store.delete_proxy(proxy_id)
+
+    async def _get_session_proxy(
+        self,
+        session_id: str,
+        filters: ProxyFilters,
+    ) -> ProxyEndpoint | None:
+        proxy_id = await self._store.get_session_proxy_id(session_id)
+        if proxy_id is None:
+            return None
+
+        proxy = await self._store.get_proxy(proxy_id)
+        if proxy is None:
+            return None
+        if proxy.status not in {"checked", "elite"}:
+            return None
+        if not self._matches_filters(proxy, filters):
+            return None
+        return proxy
 
     @staticmethod
     def _matches_filters(proxy: ProxyEndpoint, filters: ProxyFilters) -> bool:

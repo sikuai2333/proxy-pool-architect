@@ -22,7 +22,12 @@ router = APIRouter(tags=["proxy"])
 
 
 def get_proxy_service(store: Annotated[RedisStore, Depends(get_store)]) -> ProxyService:
-    return ProxyService(store, cooldown_seconds=get_settings().cooldown_seconds)
+    settings = get_settings()
+    return ProxyService(
+        store,
+        cooldown_seconds=settings.cooldown_seconds,
+        session_affinity_ttl_seconds=settings.session_affinity_ttl_seconds,
+    )
 
 
 @router.get(
@@ -36,6 +41,7 @@ async def get_proxy(
     anonymity: ProxyAnonymity | None = None,
     country: str | None = None,
     min_score: int | None = None,
+    session_id: Annotated[str | None, Query(min_length=1, max_length=128)] = None,
     response_format: Annotated[ProxyResponseFormat, Query(alias="format")] = "json",
 ) -> ProxyResponse | PlainTextResponse:
     proxy = await service.get_proxy(
@@ -44,7 +50,8 @@ async def get_proxy(
             anonymity=anonymity,
             country=country,
             min_score=min_score,
-        )
+        ),
+        session_id=session_id,
     )
     if proxy is None:
         raise HTTPException(status_code=404, detail="proxy not found")

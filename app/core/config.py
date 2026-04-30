@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     validator_original_ip: str | None = None
     min_elite_score: int = 80
     cooldown_seconds: int = Field(default=1800, ge=1)
+    session_affinity_ttl_seconds: int = Field(default=3600, ge=1)
 
     scheduler_enabled: bool = False
     fetch_interval_seconds: int = Field(default=1800, ge=1)

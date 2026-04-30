@@ -10,6 +10,10 @@ class FakeRedis:
         self.values[name] = value
         return True
 
+    async def setex(self, name: str, time: int, value: str) -> bool:
+        self.values[name] = value
+        return True
+
     async def get(self, name: str) -> str | None:
         return self.values.get(name)
 

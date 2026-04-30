@@ -82,6 +82,28 @@ def test_get_proxy_returns_404_when_no_proxy_matches() -> None:
     assert response.status_code == 404
 
 
+def test_get_proxy_reuses_session_affinity() -> None:
+    client, store = make_client()
+    first = make_proxy("http-1.2.3.4-8080", score=90)
+    second = make_proxy("http-1.2.3.5-8080", score=80)
+    asyncio.run(store.add_proxy("elite", first))
+    asyncio.run(store.add_proxy("elite", second))
+
+    first_response = client.get("/proxy", params={"session_id": "task-1"})
+    assert first_response.status_code == 200
+    assert first_response.json()["id"] == first.id
+
+    asyncio.run(store.save_proxy("elite", first.model_copy(update={"score": 10})))
+
+    same_session_response = client.get("/proxy", params={"session_id": "task-1"})
+    other_session_response = client.get("/proxy", params={"session_id": "task-2"})
+
+    assert same_session_response.status_code == 200
+    assert same_session_response.json()["id"] == first.id
+    assert other_session_response.status_code == 200
+    assert other_session_response.json()["id"] == second.id
+
+
 def test_list_proxies_filters_by_pool_and_country() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080", country="US")))
