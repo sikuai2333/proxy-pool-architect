@@ -1,0 +1,45 @@
+# Local environment
+.env
+.env.*
+!.env.example
+.python-version
+
+# Python caches and build output
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.tox/
+.nox/
+__pycache__/
+*.py[cod]
+*$py.class
+dist/
+build/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+
+# Tooling and editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker and local volumes
+.docker/
+docker-data/
