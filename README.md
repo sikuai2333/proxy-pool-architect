@@ -8,7 +8,7 @@ management workflows only.
 
 The current implementation contains the Phase 0 application skeleton, Phase 1 storage
 foundation, Phase 2 provider system, Phase 3 validation layer, Phase 4 API service, and
-Phase 5 scheduler integration, and Phase 6 basic dashboard:
+Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production basics:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -27,9 +27,9 @@ Phase 5 scheduler integration, and Phase 6 basic dashboard:
 - `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
 - APScheduler-backed fetch and validation jobs, disabled by default
 - lightweight `/dashboard` page for counts, source distribution, latency, success rate, and delete actions
+- Prometheus-compatible `/metrics`, optional JSON logs, Docker image hardening, and CI workflow
 
-Admin-only workflows and production observability are planned for later phases and are not
-implemented yet.
+Advanced production observability and a richer dashboard can be added later.
 
 ## Setup
 
@@ -49,6 +49,12 @@ Run with Docker Compose:
 
 ```bash
 docker compose up -d
+```
+
+Build the Docker image:
+
+```bash
+docker build -t proxy-pool-architect:local .
 ```
 
 Check service health:
@@ -182,6 +188,23 @@ Registered jobs:
 Jobs use `max_instances=1`, coalescing, configured network timeouts, bounded validation
 concurrency, and no retry loops.
 
+## Metrics And Logs
+
+Prometheus-compatible metrics are available at:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Metrics include pool counts, total proxies, average latency, success rate, and source
+distribution. Metrics do not expose proxy credentials.
+
+Enable JSON logs for log collectors:
+
+```bash
+LOG_JSON=true uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
 ## Dashboard
 
 Phase 6 adds a lightweight server-rendered dashboard at:
@@ -194,6 +217,19 @@ It shows pool counts, provider source distribution, average latency, success rat
 table with delete actions. It uses the existing API and storage services and does not add a
 frontend framework dependency.
 
+## CI
+
+GitHub Actions is configured in `.github/workflows/ci.yml` to run:
+
+- `uv run ruff check .`
+- `uv run mypy app`
+- `uv run pytest`
+- `docker build -t proxy-pool-architect:ci .`
+
+## Security
+
+See `docs/security.md` for operational boundaries and deployment guidance.
+
 ## Configuration
 
 Configuration is read from environment variables or a local `.env` file. Use `.env.example`
@@ -205,6 +241,7 @@ as the starting point.
 | `APP_HOST` | `0.0.0.0` | Host used by local run commands |
 | `APP_PORT` | `8000` | Port used by local run commands |
 | `LOG_LEVEL` | `INFO` | Application log level |
+| `LOG_JSON` | `false` | Emit structured JSON logs |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `PROVIDER_STATIC_ENABLED` | `true` | Enable static proxy provider |
 | `PROVIDER_STATIC_PROXIES` | `[]` | JSON array of static proxy URLs |
@@ -222,6 +259,7 @@ as the starting point.
 | `FETCH_INTERVAL_SECONDS` | `1800` | Fetch job interval |
 | `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |
 | `VALIDATE_BATCH_SIZE` | `100` | Max raw proxies validated per job run |
+| `METRICS_ENABLED` | `true` | Enable `/metrics` endpoint |
 
 ## Safety Boundary
 

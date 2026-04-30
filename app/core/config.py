@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     log_level: str = "INFO"
+    log_json: bool = False
     redis_url: str = "redis://localhost:6379/0"
 
     provider_static_enabled: bool = True
@@ -37,6 +38,7 @@ class Settings(BaseSettings):
     fetch_interval_seconds: int = Field(default=1800, ge=1)
     validate_interval_seconds: int = Field(default=600, ge=1)
     validate_batch_size: int = Field(default=100, ge=1)
+    metrics_enabled: bool = True
 
 
 @lru_cache
