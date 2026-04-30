@@ -7,7 +7,7 @@ management workflows only.
 ## Current Scope
 
 The current implementation contains the Phase 0 application skeleton, Phase 1 storage
-foundation, Phase 2 provider system, and Phase 3 validation layer:
+foundation, Phase 2 provider system, Phase 3 validation layer, and Phase 4 API service:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -23,9 +23,10 @@ foundation, Phase 2 provider system, and Phase 3 validation layer:
 - `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
 - `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
 - `ValidateService` with bounded concurrency, scoring, and pool movement
+- `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
 
-Scheduler jobs, public proxy APIs, admin APIs, and Dashboard views are planned for later phases
-and are not implemented yet.
+Scheduler jobs, admin-only workflows, and Dashboard views are planned for later phases and are
+not implemented yet.
 
 ## Setup
 
@@ -102,7 +103,7 @@ validate, score, or attempt to bypass remote access controls.
 
 ## Validation Layer
 
-Phase 3 adds validation without public proxy APIs:
+Phase 3 adds validation for stored proxies:
 
 - `ProtocolValidator` checks supported proxy scheme and endpoint shape.
 - `ConnectivityValidator` checks whether a proxy can reach the configured `TEST_URL`.
@@ -113,6 +114,50 @@ Phase 3 adds validation without public proxy APIs:
 
 Validation does not implement CAPTCHA bypass, anti-bot evasion, target-specific block
 circumvention, or retry loops.
+
+## API
+
+Get one proxy as JSON:
+
+```bash
+curl "http://localhost:8000/proxy?scheme=http&country=US&min_score=80"
+```
+
+Get one proxy as text:
+
+```bash
+curl "http://localhost:8000/proxy?format=text"
+```
+
+The text format intentionally omits proxy credentials and returns `scheme://host:port`.
+
+List proxies:
+
+```bash
+curl "http://localhost:8000/proxy/list?pool=checked&limit=50&offset=0"
+```
+
+Report usage result:
+
+```bash
+curl -X POST "http://localhost:8000/proxy/report" \
+  -H "Content-Type: application/json" \
+  -d '{"proxy_id":"http-1.2.3.4-8080","ok":true,"latency_ms":120,"error":null}'
+```
+
+Get stats:
+
+```bash
+curl "http://localhost:8000/stats"
+```
+
+Delete a proxy:
+
+```bash
+curl -X DELETE "http://localhost:8000/proxy/http-1.2.3.4-8080"
+```
+
+JSON proxy responses use a public schema and do not include stored proxy passwords.
 
 ## Configuration
 

@@ -48,6 +48,11 @@ class RedisStore:
         await self._save_proxy(pool, stored_proxy)
         return stored_proxy
 
+    async def save_proxy(self, pool: ProxyPool, proxy: ProxyEndpoint) -> ProxyEndpoint:
+        stored_proxy = proxy.model_copy(update={"status": pool})
+        await self._save_proxy(pool, stored_proxy)
+        return stored_proxy
+
     async def get_proxy(self, proxy_id: str) -> ProxyEndpoint | None:
         located = await self._get_proxy_with_pool(proxy_id)
         if located is None:
@@ -57,11 +62,25 @@ class RedisStore:
 
     async def remove_proxy(self, pool: ProxyPool, proxy_id: str) -> bool:
         removed_from_index = await self._client.zrem(pool_index_key(pool), proxy_id)
-        removed_keys = await self._client.delete(
-            proxy_key(pool, proxy_id),
-            proxy_pool_key(proxy_id),
-        )
-        return bool(removed_from_index or removed_keys)
+        removed_key = await self._client.delete(proxy_key(pool, proxy_id))
+        if removed_from_index or removed_key:
+            await self._client.delete(proxy_pool_key(proxy_id))
+            return True
+        return False
+
+    async def delete_proxy(self, proxy_id: str) -> bool:
+        located = await self._get_proxy_with_pool(proxy_id)
+        if located is None:
+            return False
+        pool, _ = located
+        return await self.remove_proxy(pool, proxy_id)
+
+    async def find_proxy_pool(self, proxy_id: str) -> ProxyPool | None:
+        located = await self._get_proxy_with_pool(proxy_id)
+        if located is None:
+            return None
+        pool, _ = located
+        return pool
 
     async def move_proxy(
         self,
