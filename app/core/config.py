@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,13 @@ class Settings(BaseSettings):
     app_port: int = 8000
     log_level: str = "INFO"
     redis_url: str = "redis://localhost:6379/0"
+
+    provider_static_enabled: bool = True
+    provider_static_proxies: list[str] = Field(default_factory=list)
+    provider_url_lists_enabled: bool = False
+    provider_url_list_urls: list[str] = Field(default_factory=list)
+    provider_url_timeout_seconds: float = Field(default=10.0, gt=0)
+    provider_url_concurrency: int = Field(default=5, ge=1)
 
 
 @lru_cache

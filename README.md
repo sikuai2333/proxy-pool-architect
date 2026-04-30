@@ -6,8 +6,8 @@ management workflows only.
 
 ## Current Scope
 
-The current implementation contains the Phase 0 application skeleton and Phase 1 storage
-foundation:
+The current implementation contains the Phase 0 application skeleton, Phase 1 storage
+foundation, and Phase 2 provider system:
 
 - FastAPI application entrypoint at `app/main.py`
 - typed `/health` endpoint
@@ -19,9 +19,11 @@ foundation:
 - Redis key helpers and JSON serialization
 - `RedisStore` operations for `raw`, `checked`, `elite`, and `dead` pools
 - score-based best-proxy selection from `elite` then `checked`
+- proxy URL parsing for HTTP, HTTPS, SOCKS4, and SOCKS5 sources
+- `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
 
-Providers, validators, scheduler jobs, scoring services, and proxy APIs are planned for later
-phases and are not implemented yet.
+Validators, scheduler jobs, scoring services, and proxy APIs are planned for later phases and
+are not implemented yet.
 
 ## Setup
 
@@ -84,6 +86,18 @@ Phase 1 adds the Redis-backed storage abstraction used by later services:
 
 Redis keys are centralized in `app/storage/keys.py`, and proxy records are stored as JSON.
 
+## Provider Layer
+
+Phase 2 adds provider fetching without proxy validation:
+
+- `StaticProvider` parses configured proxy URLs from `PROVIDER_STATIC_PROXIES`.
+- `UrlListProvider` fetches configured text URLs from `PROVIDER_URL_LIST_URLS`.
+- `ProviderManager` calls enabled providers.
+- `FetchService` deduplicates fetched proxies and writes them to the `raw` pool.
+
+URL list fetching uses configured timeouts and bounded concurrency. It does not retry,
+validate, score, or attempt to bypass remote access controls.
+
 ## Configuration
 
 Configuration is read from environment variables or a local `.env` file. Use `.env.example`
@@ -95,7 +109,13 @@ as the starting point.
 | `APP_HOST` | `0.0.0.0` | Host used by local run commands |
 | `APP_PORT` | `8000` | Port used by local run commands |
 | `LOG_LEVEL` | `INFO` | Application log level |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL for later storage phases |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
+| `PROVIDER_STATIC_ENABLED` | `true` | Enable static proxy provider |
+| `PROVIDER_STATIC_PROXIES` | `[]` | JSON array of static proxy URLs |
+| `PROVIDER_URL_LISTS_ENABLED` | `false` | Enable URL list provider |
+| `PROVIDER_URL_LIST_URLS` | `[]` | JSON array of text proxy list URLs |
+| `PROVIDER_URL_TIMEOUT_SECONDS` | `10` | Timeout for provider URL requests |
+| `PROVIDER_URL_CONCURRENCY` | `5` | Max concurrent provider URL requests |
 
 ## Safety Boundary
 
