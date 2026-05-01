@@ -55,6 +55,8 @@ backend supports `/health`, `/stats`, `/proxy/list`, `/proxy/{proxy_id}`,
 
 - Settings page with safe runtime controls
 - Theme toggle with local persistence
+- Language toggle with local persistence
+- English and Chinese dashboard text resources under `src/i18n`
 - Live runtime settings integration with backend fallback compatibility
 
 ## Dashboard Guide
@@ -63,6 +65,7 @@ backend supports `/health`, `/stats`, `/proxy/list`, `/proxy/{proxy_id}`,
 2. Use `Proxies` for filtering, paging, inspecting, and deleting proxies.
 3. Use `Geo` and `Providers` to understand where proxies come from and how they perform.
 4. Use `Validation` and `Logs` to review failures, timeout patterns, and recent events.
+5. Use `Settings` to switch the dashboard language between English and Chinese.
 
 ## Deployment
 

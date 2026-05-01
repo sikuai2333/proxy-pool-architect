@@ -1,3 +1,4 @@
+import { useI18n, type TranslationKey } from "../../i18n";
 import type { ProxyAnonymity } from "../../types";
 
 interface AnonymityBadgeProps {
@@ -5,5 +6,8 @@ interface AnonymityBadgeProps {
 }
 
 export function AnonymityBadge({ anonymity }: AnonymityBadgeProps) {
-  return <span className={`badge badge-anonymity badge-anonymity-${anonymity}`}>{anonymity}</span>;
+  const { t } = useI18n();
+  const labelKey = `anonymity.${anonymity}` as TranslationKey;
+
+  return <span className={`badge badge-anonymity badge-anonymity-${anonymity}`}>{t(labelKey)}</span>;
 }

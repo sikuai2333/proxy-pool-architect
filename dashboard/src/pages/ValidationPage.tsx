@@ -5,8 +5,8 @@ import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { ValidationJobTable } from "../components/validation/ValidationJobTable";
+import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
-import { formatNumber, formatPercent } from "../lib/format";
 import type { EventLogEntry, OverviewData, ValidationJob } from "../types";
 
 function countErrorTypes(events: EventLogEntry[]) {
@@ -23,6 +23,7 @@ function countErrorTypes(events: EventLogEntry[]) {
 }
 
 export function ValidationPage() {
+  const { t, formatNumber, formatPercent } = useI18n();
   const [jobs, setJobs] = useState<ValidationJob[]>([]);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [events, setEvents] = useState<EventLogEntry[]>([]);
@@ -49,7 +50,7 @@ export function ValidationPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load validation status");
+          setError(err instanceof Error ? err.message : t("validation.loadError"));
         }
       } finally {
         if (!cancelled) {
@@ -63,10 +64,10 @@ export function ValidationPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <LoadingState label="Loading validation status" />;
+    return <LoadingState label={t("validation.loading")} />;
   }
 
   if (error) {
@@ -74,7 +75,7 @@ export function ValidationPage() {
   }
 
   if (jobs.length === 0 || !overview) {
-    return <EmptyState title="No validation activity available" message="No recent validation jobs were returned." />;
+    return <EmptyState title={t("validation.emptyTitle")} message={t("validation.emptyMessage")} />;
   }
 
   const totalChecked = jobs.reduce((sum, item) => sum + item.checked_count, 0);
@@ -85,37 +86,37 @@ export function ValidationPage() {
   return (
     <div className="section-page">
       <section className="panel panel-note">
-        <h2>Validation status</h2>
+        <h2>{t("validation.statusTitle")}</h2>
         <p>
           {dashboardDataMode === "live"
-            ? "Live mode reads recent validation jobs and operational events from the backend."
-            : "This page is currently backed by mock validation history."}
+            ? t("validation.liveNote")
+            : t("validation.mockNote")}
         </p>
       </section>
 
       <section className="metric-section">
         <MetricCard
-          label="Recent success rate"
+          label={t("validation.recentSuccessRate")}
           value={formatPercent(totalChecked > 0 ? totalSuccess / totalChecked : null)}
-          detail="Across recent validation jobs"
+          detail={t("validation.recentSuccessDetail")}
           tone="good"
         />
         <MetricCard
-          label="Timeout rate"
+          label={t("validation.timeoutRate")}
           value={formatPercent(totalChecked > 0 ? totalTimeout / totalChecked : null)}
-          detail={`${formatNumber(totalTimeout)} timeout events`}
+          detail={t("validation.timeoutEvents", { count: formatNumber(totalTimeout) })}
           tone="warning"
         />
         <MetricCard
-          label="Dead proxies"
+          label={t("overview.deadProxies")}
           value={formatNumber(overview.stats.dead)}
-          detail="Current dead pool size"
+          detail={t("validation.deadDetail")}
           tone="danger"
         />
         <MetricCard
-          label="Checked proxies"
+          label={t("overview.checkedProxies")}
           value={formatNumber(overview.stats.checked)}
-          detail="Ready for selection"
+          detail={t("validation.checkedDetail")}
           tone="good"
         />
       </section>
@@ -123,8 +124,8 @@ export function ValidationPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Recent validation jobs</h2>
-            <p>Job-level throughput, success, failure, and timeout signals.</p>
+            <h2>{t("validation.recentJobs")}</h2>
+            <p>{t("validation.jobsDescription")}</p>
           </div>
         </div>
         <ValidationJobTable items={jobs} />
@@ -133,8 +134,8 @@ export function ValidationPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Common error types</h2>
-            <p>Most frequent warning and error categories from recent events.</p>
+            <h2>{t("validation.commonErrors")}</h2>
+            <p>{t("validation.commonErrorsDescription")}</p>
           </div>
         </div>
         <div className="stack-list">
@@ -142,7 +143,7 @@ export function ValidationPage() {
             <div key={item.type} className="stack-row">
               <div className="stack-row-header">
                 <strong>{item.type}</strong>
-                <span>{formatNumber(item.total)} events</span>
+                <span>{t("validation.eventsCount", { count: formatNumber(item.total) })}</span>
               </div>
               <div className="stack-track" aria-hidden="true">
                 <div className="stack-fill stack-fill-warning" style={{ width: `${Math.max(12, item.total * 18)}%` }} />

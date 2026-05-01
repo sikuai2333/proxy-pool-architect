@@ -4,10 +4,12 @@ import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
 import { ProviderTable } from "../components/providers/ProviderTable";
+import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { ProviderSummary } from "../types";
 
 export function ProvidersPage() {
+  const { t } = useI18n();
   const [items, setItems] = useState<ProviderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function ProvidersPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load provider summary");
+          setError(err instanceof Error ? err.message : t("providers.loadError"));
         }
       } finally {
         if (!cancelled) {
@@ -40,10 +42,10 @@ export function ProvidersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <LoadingState label="Loading provider status" />;
+    return <LoadingState label={t("providers.loading")} />;
   }
 
   if (error) {
@@ -51,25 +53,25 @@ export function ProvidersPage() {
   }
 
   if (items.length === 0) {
-    return <EmptyState title="No providers available" message="No provider records were returned." />;
+    return <EmptyState title={t("providers.emptyTitle")} message={t("providers.emptyMessage")} />;
   }
 
   return (
     <div className="section-page">
       <section className="panel panel-note">
-        <h2>Provider health</h2>
+        <h2>{t("providers.health")}</h2>
         <p>
           {dashboardDataMode === "live"
-            ? "Live mode reads provider summaries from the backend and falls back to source-derived data only when needed."
-            : "This page is currently backed by mock provider data."}
+            ? t("providers.liveNote")
+            : t("providers.mockNote")}
         </p>
       </section>
 
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Provider inventory</h2>
-            <p>Enabled status, fetch counts, valid counts, and the most recent error signal.</p>
+            <h2>{t("providers.inventory")}</h2>
+            <p>{t("providers.description")}</p>
           </div>
         </div>
         <ProviderTable items={items} />

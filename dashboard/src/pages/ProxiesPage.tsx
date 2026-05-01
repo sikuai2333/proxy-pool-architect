@@ -7,7 +7,7 @@ import { LoadingState } from "../components/common/LoadingState";
 import { ProxyDetailDrawer } from "../components/proxies/ProxyDetailDrawer";
 import { ProxyFilters, type ProxyFilterState } from "../components/proxies/ProxyFilters";
 import { ProxyTable } from "../components/proxies/ProxyTable";
-import { formatNumber } from "../lib/format";
+import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { ProxyEndpoint, ProxyFilterOptions, ProxyListResponse } from "../types";
 
@@ -28,21 +28,30 @@ const emptyOptions: ProxyFilterOptions = {
   sources: []
 };
 
-function buildListMessage(response: ProxyListResponse | null) {
+function buildListMessage(
+  response: ProxyListResponse | null,
+  formatNumber: (value: number) => string,
+  t: ReturnType<typeof useI18n>["t"]
+) {
   if (!response) {
-    return "0 proxies";
+    return t("proxies.zeroCount");
   }
 
   if (response.total === 0) {
-    return "0 proxies";
+    return t("proxies.zeroCount");
   }
 
   const start = response.offset + 1;
   const end = response.offset + response.items.length;
-  return `${formatNumber(start)}-${formatNumber(end)} of ${formatNumber(response.total)}`;
+  return t("proxies.listRange", {
+    start: formatNumber(start),
+    end: formatNumber(end),
+    total: formatNumber(response.total)
+  });
 }
 
 export function ProxiesPage() {
+  const { t, formatNumber } = useI18n();
   const [filters, setFilters] = useState<ProxyFilterState>(defaultFilters);
   const [options, setOptions] = useState<ProxyFilterOptions>(emptyOptions);
   const [page, setPage] = useState(1);
@@ -66,7 +75,7 @@ export function ProxiesPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load filter options");
+          setError(err instanceof Error ? err.message : t("proxies.loadFilterError"));
         }
       }
     }
@@ -76,7 +85,7 @@ export function ProxiesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +117,7 @@ export function ProxiesPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unexpected proxy list error");
+          setError(err instanceof Error ? err.message : t("proxies.loadListError"));
         }
       } finally {
         if (!cancelled) {
@@ -122,7 +131,7 @@ export function ProxiesPage() {
     return () => {
       cancelled = true;
     };
-  }, [filters, page]);
+  }, [filters, page, t]);
 
   async function openProxyDetails(proxy: ProxyEndpoint) {
     setDrawerOpen(true);
@@ -133,7 +142,7 @@ export function ProxiesPage() {
       const detail = await dashboardApi.getProxy(proxy.id);
       setSelectedProxy(detail);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load proxy detail");
+      setError(err instanceof Error ? err.message : t("proxies.loadDetailError"));
     } finally {
       setDrawerLoading(false);
     }
@@ -164,7 +173,7 @@ export function ProxiesPage() {
     try {
       const result = await dashboardApi.deleteProxy(deleteTarget.id);
       if (!result.ok) {
-        throw new Error("Mock delete did not remove the selected proxy");
+        throw new Error(t("proxies.deleteMockFailure"));
       }
 
       if (selectedProxy?.id === deleteTarget.id) {
@@ -191,7 +200,7 @@ export function ProxiesPage() {
 
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete the selected proxy");
+      setError(err instanceof Error ? err.message : t("proxies.deleteError"));
     } finally {
       setDeletePending(false);
     }
@@ -203,11 +212,11 @@ export function ProxiesPage() {
     <div className="proxies-page">
       <ProxyFilters value={filters} options={options} onChange={handleFilterChange} onReset={resetFilters} />
 
-      <section className="panel panel-table" aria-label="Proxy inventory">
+      <section className="panel panel-table" aria-label={t("proxies.inventory")}>
         <div className="panel-header">
           <div>
-            <h2>Proxy inventory</h2>
-            <p>{buildListMessage(data)}</p>
+            <h2>{t("proxies.inventory")}</h2>
+            <p>{buildListMessage(data, formatNumber, t)}</p>
           </div>
           <div className="pagination">
             <button
@@ -216,10 +225,10 @@ export function ProxiesPage() {
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page <= 1 || loading}
             >
-              Previous
+              {t("proxies.paginationPrevious")}
             </button>
             <span>
-              Page {page} / {totalPages}
+              {t("proxies.paginationPage", { page, totalPages })}
             </span>
             <button
               className="button button-secondary"
@@ -227,19 +236,19 @@ export function ProxiesPage() {
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages || loading}
             >
-              Next
+              {t("proxies.paginationNext")}
             </button>
           </div>
         </div>
 
-        {loading ? <LoadingState label="Loading proxy inventory" /> : null}
+        {loading ? <LoadingState label={t("proxies.loadingInventory")} /> : null}
 
         {!loading && error ? <ErrorState message={error} /> : null}
 
         {!loading && !error && data && data.items.length === 0 ? (
           <EmptyState
-            title="No proxies matched the current filters"
-            message="Adjust the filter set or clear the search to see more records."
+            title={t("proxies.emptyTitle")}
+            message={t("proxies.emptyMessage")}
           />
         ) : null}
 
@@ -263,13 +272,13 @@ export function ProxiesPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete proxy"
+        title={t("proxies.deleteTitle")}
         message={
           dashboardDataMode === "live"
-            ? "The selected proxy will be deleted through the backend API if the endpoint is available."
-            : "The selected proxy will be removed from the in-memory mock dataset."
+            ? t("proxies.deleteLiveMessage")
+            : t("proxies.deleteMockMessage")
         }
-        confirmLabel="Delete proxy"
+        confirmLabel={t("proxies.deleteConfirm")}
         tone="danger"
         pending={deletePending}
         onConfirm={() => {

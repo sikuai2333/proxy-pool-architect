@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { useI18n } from "../../i18n";
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -17,17 +19,22 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   tone = "default",
   pending = false,
   onConfirm,
   onCancel,
   children
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
+
   if (!open) {
     return null;
   }
+
+  const resolvedConfirmLabel = confirmLabel ?? t("common.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
 
   return (
     <div className="overlay" role="presentation">
@@ -44,7 +51,7 @@ export function ConfirmDialog({
         {children}
         <div className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onCancel}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             className={tone === "danger" ? "button button-danger" : "button button-primary"}
@@ -52,7 +59,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={pending}
           >
-            {pending ? "Working..." : confirmLabel}
+            {pending ? t("common.working") : resolvedConfirmLabel}
           </button>
         </div>
       </div>

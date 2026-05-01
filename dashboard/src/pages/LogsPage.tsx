@@ -4,10 +4,12 @@ import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
 import { EventLogTable } from "../components/logs/EventLogTable";
+import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { EventLogEntry } from "../types";
 
 export function LogsPage() {
+  const { t } = useI18n();
   const [items, setItems] = useState<EventLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function LogsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load event log");
+          setError(err instanceof Error ? err.message : t("logs.loadError"));
         }
       } finally {
         if (!cancelled) {
@@ -40,10 +42,10 @@ export function LogsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <LoadingState label="Loading event log" />;
+    return <LoadingState label={t("logs.loading")} />;
   }
 
   if (error) {
@@ -51,25 +53,25 @@ export function LogsPage() {
   }
 
   if (items.length === 0) {
-    return <EmptyState title="No events available" message="No operational events were returned." />;
+    return <EmptyState title={t("logs.emptyTitle")} message={t("logs.emptyMessage")} />;
   }
 
   return (
     <div className="section-page">
       <section className="panel panel-note">
-        <h2>Operational events</h2>
+        <h2>{t("logs.operationalEvents")}</h2>
         <p>
           {dashboardDataMode === "live"
-            ? "Live mode reads backend event history and falls back to mock entries only when the endpoint is unavailable."
-            : "This page is currently backed by mock operational events."}
+            ? t("logs.liveNote")
+            : t("logs.mockNote")}
         </p>
       </section>
 
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Recent events</h2>
-            <p>Warnings, errors, and routine operator-visible actions.</p>
+            <h2>{t("logs.recentEvents")}</h2>
+            <p>{t("logs.description")}</p>
           </div>
         </div>
         <EventLogTable items={items} />

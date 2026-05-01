@@ -1,12 +1,16 @@
+import { useI18n } from "../../i18n";
+
 interface ErrorStateProps {
   title?: string;
   message: string;
 }
 
-export function ErrorState({ title = "Unable to load data", message }: ErrorStateProps) {
+export function ErrorState({ title, message }: ErrorStateProps) {
+  const { t } = useI18n();
+
   return (
     <div className="state state-error" role="alert">
-      <strong>{title}</strong>
+      <strong>{title ?? t("common.unableToLoadData")}</strong>
       <p>{message}</p>
     </div>
   );

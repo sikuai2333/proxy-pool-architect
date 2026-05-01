@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { navigationItems, routeTitles } from "../../navigation";
+import { useI18n } from "../../i18n";
+import { navigationItems, routeTitleKeys } from "../../navigation";
 import type { DashboardRoute } from "../../types";
 
 interface AppShellProps {
@@ -18,9 +19,11 @@ export function AppShell({
   onToggleTheme,
   children
 }: AppShellProps) {
+  const { t } = useI18n();
+
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Dashboard navigation">
+      <aside className="sidebar" aria-label={t("app.navigation")}>
         <div className="brand">
           <span className="brand-mark">P</span>
           <span>ProxyPool Architect</span>
@@ -33,14 +36,14 @@ export function AppShell({
               href={`#/${item.route}`}
               aria-current={item.route === activeRoute ? "page" : undefined}
             >
-              {item.label}
+              {t(item.labelKey)}
             </a>
           ))}
         </nav>
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <h1>{routeTitles[activeRoute]}</h1>
+          <h1>{t(routeTitleKeys[activeRoute])}</h1>
           <div className="topbar-actions">
             <button className="button button-secondary" type="button" onClick={onToggleTheme}>
               {themeLabel}

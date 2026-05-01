@@ -1,4 +1,4 @@
-import { formatDateTime, formatNumber, formatPercent } from "../../lib/format";
+import { useI18n, type TranslationKey } from "../../i18n";
 import type { ValidationJob } from "../../types";
 
 interface ValidationJobTableProps {
@@ -6,20 +6,22 @@ interface ValidationJobTableProps {
 }
 
 export function ValidationJobTable({ items }: ValidationJobTableProps) {
+  const { t, formatDateTime, formatNumber, formatPercent } = useI18n();
+
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
         <thead>
           <tr>
-            <th>Job</th>
-            <th>Status</th>
-            <th>Started</th>
-            <th>Finished</th>
-            <th>Checked</th>
-            <th>Success</th>
-            <th>Fail</th>
-            <th>Timeout</th>
-            <th>Success rate</th>
+            <th>{t("validation.job")}</th>
+            <th>{t("providers.status")}</th>
+            <th>{t("validation.started")}</th>
+            <th>{t("validation.finished")}</th>
+            <th>{t("validation.checked")}</th>
+            <th>{t("proxies.table.success")}</th>
+            <th>{t("proxies.table.fail")}</th>
+            <th>{t("validation.timeout")}</th>
+            <th>{t("overview.successRate")}</th>
           </tr>
         </thead>
         <tbody>
@@ -31,7 +33,7 @@ export function ValidationJobTable({ items }: ValidationJobTableProps) {
                 <td className="cell-strong">{item.id}</td>
                 <td>
                   <span className={`badge ${item.status === "finished" ? "badge-status-checked" : "badge-status-cooldown"}`}>
-                    {item.status}
+                    {t(`validationStatus.${item.status}` as TranslationKey)}
                   </span>
                 </td>
                 <td>{formatDateTime(item.started_at)}</td>

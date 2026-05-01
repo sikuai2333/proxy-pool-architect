@@ -5,10 +5,12 @@ import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
 import { AsnDistributionTable } from "../components/geo/AsnDistributionTable";
 import { CountryDistributionChart } from "../components/geo/CountryDistributionChart";
+import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { GeoSummary } from "../types";
 
 export function GeoPage() {
+  const { t } = useI18n();
   const [data, setData] = useState<GeoSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function GeoPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load geo summary");
+          setError(err instanceof Error ? err.message : t("geo.loadError"));
         }
       } finally {
         if (!cancelled) {
@@ -41,10 +43,10 @@ export function GeoPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <LoadingState label="Loading geo summary" />;
+    return <LoadingState label={t("geo.loading")} />;
   }
 
   if (error) {
@@ -52,25 +54,25 @@ export function GeoPage() {
   }
 
   if (!data || (data.countries.length === 0 && data.asns.length === 0)) {
-    return <EmptyState title="No geo data available" message="No country or ASN records were returned." />;
+    return <EmptyState title={t("geo.emptyTitle")} message={t("geo.emptyMessage")} />;
   }
 
   return (
     <div className="section-page">
       <section className="panel panel-note">
-        <h2>Geo coverage</h2>
+        <h2>{t("geo.coverage")}</h2>
         <p>
           {dashboardDataMode === "live"
-            ? "Live mode reads geo summaries from the backend and can derive them from proxy snapshots when the endpoint is unavailable."
-            : "This page is currently backed by mock operational data."}
+            ? t("geo.liveNote")
+            : t("geo.mockNote")}
         </p>
       </section>
 
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Country distribution</h2>
-            <p>Total proxies, elite count, and average latency by country.</p>
+            <h2>{t("geo.countryDistribution")}</h2>
+            <p>{t("geo.countryDescription")}</p>
           </div>
         </div>
         <CountryDistributionChart items={data.countries.slice(0, 8)} />
@@ -79,8 +81,8 @@ export function GeoPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>ASN distribution</h2>
-            <p>Top ASN groups from the current pool.</p>
+            <h2>{t("geo.asnDistribution")}</h2>
+            <p>{t("geo.asnDescription")}</p>
           </div>
         </div>
         <AsnDistributionTable items={data.asns.slice(0, 10)} />

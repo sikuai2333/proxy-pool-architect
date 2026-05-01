@@ -1,23 +1,23 @@
 import type { DashboardRoute, NavigationItem } from "./types";
 
 export const navigationItems: NavigationItem[] = [
-  { route: "overview", label: "Overview" },
-  { route: "proxies", label: "Proxies" },
-  { route: "providers", label: "Providers" },
-  { route: "geo", label: "Geo" },
-  { route: "validation", label: "Validation" },
-  { route: "logs", label: "Logs" },
-  { route: "settings", label: "Settings" }
+  { route: "overview", labelKey: "nav.overview" },
+  { route: "proxies", labelKey: "nav.proxies" },
+  { route: "providers", labelKey: "nav.providers" },
+  { route: "geo", labelKey: "nav.geo" },
+  { route: "validation", labelKey: "nav.validation" },
+  { route: "logs", labelKey: "nav.logs" },
+  { route: "settings", labelKey: "nav.settings" }
 ];
 
-export const routeTitles: Record<DashboardRoute, string> = {
-  overview: "Overview",
-  proxies: "Proxies",
-  providers: "Providers",
-  geo: "Geo",
-  validation: "Validation",
-  logs: "Logs",
-  settings: "Settings"
+export const routeTitleKeys: Record<DashboardRoute, NavigationItem["labelKey"]> = {
+  overview: "nav.overview",
+  proxies: "nav.proxies",
+  providers: "nav.providers",
+  geo: "nav.geo",
+  validation: "nav.validation",
+  logs: "nav.logs",
+  settings: "nav.settings"
 };
 
 export function toRoute(hash: string): DashboardRoute {

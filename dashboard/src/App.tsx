@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { AppShell } from "./components/layout/AppShell";
+import { useI18n } from "./i18n";
 import { dashboardDataMode } from "./lib/api-client";
-import { routeTitles, toRoute } from "./navigation";
+import { routeTitleKeys, toRoute } from "./navigation";
 import { GeoPage } from "./pages/GeoPage";
 import { LogsPage } from "./pages/LogsPage";
 import { OverviewPage } from "./pages/OverviewPage";
@@ -49,7 +50,7 @@ function useThemeMode() {
   };
 }
 
-function renderRoute(route: DashboardRoute) {
+function renderRoute(route: DashboardRoute, title: string) {
   if (route === "overview") {
     return <OverviewPage />;
   }
@@ -78,22 +79,24 @@ function renderRoute(route: DashboardRoute) {
     return <SettingsPage />;
   }
 
-  return <PlaceholderPage title={routeTitles[route]} />;
+  return <PlaceholderPage title={title} />;
 }
 
 export function App() {
   const activeRoute = useHashRoute();
-  const modeLabel = dashboardDataMode === "live" ? "Live API" : "Mock data";
+  const { t } = useI18n();
+  const modeLabel = dashboardDataMode === "live" ? t("mode.live") : t("mode.mock");
   const { theme, toggleTheme } = useThemeMode();
+  const activeTitle = t(routeTitleKeys[activeRoute]);
 
   return (
     <AppShell
       activeRoute={activeRoute}
       modeLabel={modeLabel}
-      themeLabel={theme === "dark" ? "Light theme" : "Dark theme"}
+      themeLabel={theme === "dark" ? t("theme.light") : t("theme.dark")}
       onToggleTheme={toggleTheme}
     >
-      {renderRoute(activeRoute)}
+      {renderRoute(activeRoute, activeTitle)}
     </AppShell>
   );
 }

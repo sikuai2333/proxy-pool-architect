@@ -1,12 +1,16 @@
+import { useI18n } from "../../i18n";
+
 interface LoadingStateProps {
   label?: string;
 }
 
-export function LoadingState({ label = "Loading" }: LoadingStateProps) {
+export function LoadingState({ label }: LoadingStateProps) {
+  const { t } = useI18n();
+
   return (
     <div className="state state-loading" role="status" aria-live="polite">
       <span className="spinner" aria-hidden="true" />
-      <span>{label}</span>
+      <span>{label ?? t("common.loading")}</span>
     </div>
   );
 }

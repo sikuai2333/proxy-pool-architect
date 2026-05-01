@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
+import { languageLabels, languages, useI18n, type Language, type TranslationKey } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { DashboardSettings } from "../types";
 
@@ -12,11 +13,12 @@ function toNumber(value: string, fallback: number) {
 }
 
 export function SettingsPage() {
+  const { language, setLanguage, t } = useI18n();
   const [settings, setSettings] = useState<DashboardSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [messageKey, setMessageKey] = useState<TranslationKey | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +34,7 @@ export function SettingsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load settings");
+          setError(err instanceof Error ? err.message : t("settings.loadError"));
         }
       } finally {
         if (!cancelled) {
@@ -46,10 +48,10 @@ export function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
-    return <LoadingState label="Loading dashboard settings" />;
+    return <LoadingState label={t("settings.loading")} />;
   }
 
   if (error) {
@@ -57,7 +59,7 @@ export function SettingsPage() {
   }
 
   if (!settings) {
-    return <EmptyState title="No settings available" message="No dashboard settings were returned." />;
+    return <EmptyState title={t("settings.emptyTitle")} message={t("settings.emptyMessage")} />;
   }
 
   async function saveSettings() {
@@ -67,14 +69,14 @@ export function SettingsPage() {
 
     setSaving(true);
     setError(null);
-    setMessage(null);
+    setMessageKey(null);
 
     try {
       const saved = await dashboardApi.updateSettings(settings);
       setSettings(saved);
-      setMessage("Settings saved.");
+      setMessageKey("settings.saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save settings");
+      setError(err instanceof Error ? err.message : t("settings.saveError"));
     } finally {
       setSaving(false);
     }
@@ -83,25 +85,47 @@ export function SettingsPage() {
   return (
     <div className="section-page">
       <section className="panel panel-note">
-        <h2>Runtime settings</h2>
+        <h2>{t("settings.runtimeTitle")}</h2>
         <p>
           {dashboardDataMode === "live"
-            ? "Live mode reads and updates runtime-safe backend settings."
-            : "This page is currently backed by mock settings data."}
+            ? t("settings.liveNote")
+            : t("settings.mockNote")}
         </p>
       </section>
 
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h2>Scheduler and validation</h2>
-            <p>Only safe networking and quality-management settings are exposed here.</p>
+            <h2>{t("settings.preferences")}</h2>
+            <p>{t("settings.preferencesDescription")}</p>
           </div>
         </div>
 
         <div className="settings-grid">
           <label className="field">
-            <span>Fetch interval seconds</span>
+            <span>{t("settings.language")}</span>
+            <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
+              {languages.map((item) => (
+                <option key={item} value={item}>
+                  {t(languageLabels[item])}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>{t("settings.schedulerTitle")}</h2>
+            <p>{t("settings.schedulerDescription")}</p>
+          </div>
+        </div>
+
+        <div className="settings-grid">
+          <label className="field">
+            <span>{t("settings.fetchInterval")}</span>
             <input
               type="number"
               min="60"
@@ -116,7 +140,7 @@ export function SettingsPage() {
           </label>
 
           <label className="field">
-            <span>Validation interval seconds</span>
+            <span>{t("settings.validationInterval")}</span>
             <input
               type="number"
               min="60"
@@ -131,7 +155,7 @@ export function SettingsPage() {
           </label>
 
           <label className="field">
-            <span>Validation timeout seconds</span>
+            <span>{t("settings.validationTimeout")}</span>
             <input
               type="number"
               min="1"
@@ -146,7 +170,7 @@ export function SettingsPage() {
           </label>
 
           <label className="field">
-            <span>Validation concurrency</span>
+            <span>{t("settings.validationConcurrency")}</span>
             <input
               type="number"
               min="1"
@@ -161,7 +185,7 @@ export function SettingsPage() {
           </label>
 
           <label className="field">
-            <span>Minimum elite score</span>
+            <span>{t("settings.minimumEliteScore")}</span>
             <input
               type="number"
               min="0"
@@ -177,7 +201,7 @@ export function SettingsPage() {
           </label>
 
           <label className="field">
-            <span>Cooldown seconds</span>
+            <span>{t("settings.cooldownSeconds")}</span>
             <input
               type="number"
               min="0"
@@ -208,8 +232,8 @@ export function SettingsPage() {
               }
             />
             <div>
-              <strong>Authorized targets only</strong>
-              <p>Keep dashboard-triggered networking limited to approved internal or owned targets.</p>
+              <strong>{t("settings.authorizedTargets")}</strong>
+              <p>{t("settings.authorizedTargetsDescription")}</p>
             </div>
           </label>
 
@@ -228,8 +252,8 @@ export function SettingsPage() {
               }
             />
             <div>
-              <strong>Block private networks</strong>
-              <p>Avoid routing validation work into RFC1918 or local-only destinations by default.</p>
+              <strong>{t("settings.blockPrivateNetworks")}</strong>
+              <p>{t("settings.blockPrivateNetworksDescription")}</p>
             </div>
           </label>
 
@@ -248,21 +272,21 @@ export function SettingsPage() {
               }
             />
             <div>
-              <strong>Mask proxy credentials</strong>
-              <p>Never reveal proxy usernames or passwords in the dashboard UI.</p>
+              <strong>{t("settings.maskCredentials")}</strong>
+              <p>{t("settings.maskCredentialsDescription")}</p>
             </div>
           </label>
         </div>
 
         <div className="filter-actions">
           <div className="settings-status">
-            {message ? <span className="status-text status-ok">{message}</span> : null}
-            {!message && dashboardDataMode === "live" ? (
-              <span className="status-text status-unknown">Connected to live settings API.</span>
+            {messageKey ? <span className="status-text status-ok">{t(messageKey)}</span> : null}
+            {!messageKey && dashboardDataMode === "live" ? (
+              <span className="status-text status-unknown">{t("settings.connected")}</span>
             ) : null}
           </div>
           <button className="button button-primary" type="button" onClick={() => void saveSettings()} disabled={saving}>
-            {saving ? "Saving..." : "Save settings"}
+            {saving ? t("settings.saving") : t("settings.save")}
           </button>
         </div>
       </section>

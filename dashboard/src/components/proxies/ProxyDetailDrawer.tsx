@@ -3,7 +3,7 @@ import { ProxyStatusBadge } from "./ProxyStatusBadge";
 import { SchemeBadge } from "./SchemeBadge";
 import { EmptyState } from "../common/EmptyState";
 import { LoadingState } from "../common/LoadingState";
-import { formatDateTime, formatLatency, maskCredential } from "../../lib/format";
+import { useI18n } from "../../i18n";
 import type { ProxyEndpoint } from "../../types";
 
 interface ProxyDetailDrawerProps {
@@ -14,6 +14,8 @@ interface ProxyDetailDrawerProps {
 }
 
 export function ProxyDetailDrawer({ open, proxy, loading, onClose }: ProxyDetailDrawerProps) {
+  const { t, formatDateTime, formatLatency, maskCredential } = useI18n();
+
   if (!open) {
     return null;
   }
@@ -29,18 +31,18 @@ export function ProxyDetailDrawer({ open, proxy, loading, onClose }: ProxyDetail
       >
         <div className="drawer-header">
           <div>
-            <h2 id="proxy-detail-title">Proxy details</h2>
-            <p>{proxy ? proxy.id : "Inspecting selected proxy"}</p>
+            <h2 id="proxy-detail-title">{t("proxies.detail.title")}</h2>
+            <p>{proxy ? proxy.id : t("proxies.detail.inspecting")}</p>
           </div>
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
         </div>
 
-        {loading ? <LoadingState label="Loading proxy details" /> : null}
+        {loading ? <LoadingState label={t("proxies.detail.loading")} /> : null}
 
         {!loading && !proxy ? (
-          <EmptyState title="No proxy selected" message="Pick a proxy row to inspect more detail." />
+          <EmptyState title={t("proxies.detail.emptyTitle")} message={t("proxies.detail.emptyMessage")} />
         ) : null}
 
         {!loading && proxy ? (
@@ -53,74 +55,74 @@ export function ProxyDetailDrawer({ open, proxy, loading, onClose }: ProxyDetail
 
             <dl className="detail-grid">
               <div>
-                <dt>Host</dt>
+                <dt>{t("proxies.table.host")}</dt>
                 <dd>{proxy.host}</dd>
               </div>
               <div>
-                <dt>Port</dt>
+                <dt>{t("proxies.table.port")}</dt>
                 <dd>{proxy.port}</dd>
               </div>
               <div>
-                <dt>Source</dt>
+                <dt>{t("proxies.table.source")}</dt>
                 <dd>{proxy.source}</dd>
               </div>
               <div>
-                <dt>Country</dt>
-                <dd>{proxy.country || "Unknown"}</dd>
+                <dt>{t("proxies.table.country")}</dt>
+                <dd>{proxy.country || t("common.unknown")}</dd>
               </div>
               <div>
                 <dt>ASN</dt>
-                <dd>{proxy.asn || "Unknown"}</dd>
+                <dd>{proxy.asn || t("common.unknown")}</dd>
               </div>
               <div>
-                <dt>Latency</dt>
+                <dt>{t("proxies.table.latency")}</dt>
                 <dd>{formatLatency(proxy.latency_ms)}</dd>
               </div>
               <div>
-                <dt>Score</dt>
+                <dt>{t("proxies.table.score")}</dt>
                 <dd>{proxy.score}</dd>
               </div>
               <div>
-                <dt>Success / fail</dt>
+                <dt>{t("proxies.detail.successFail")}</dt>
                 <dd>
                   {proxy.success_count} / {proxy.fail_count}
                 </dd>
               </div>
               <div>
-                <dt>Last checked</dt>
+                <dt>{t("proxies.table.lastChecked")}</dt>
                 <dd>{formatDateTime(proxy.last_checked_at)}</dd>
               </div>
               <div>
-                <dt>Last success</dt>
+                <dt>{t("proxies.detail.lastSuccess")}</dt>
                 <dd>{formatDateTime(proxy.last_success_at)}</dd>
               </div>
               <div>
-                <dt>Authentication</dt>
-                <dd>{proxy.auth_required ? "Configured and hidden" : "Not required"}</dd>
+                <dt>{t("proxies.detail.authentication")}</dt>
+                <dd>{proxy.auth_required ? t("proxies.detail.authConfigured") : t("proxies.detail.authNotRequired")}</dd>
               </div>
               <div>
-                <dt>Username</dt>
+                <dt>{t("proxies.detail.username")}</dt>
                 <dd>
-                  {proxy.username ? maskCredential(proxy.username) : proxy.auth_required ? "Hidden" : "Not set"}
+                  {proxy.username ? maskCredential(proxy.username) : proxy.auth_required ? t("proxies.detail.hidden") : t("common.notSet")}
                 </dd>
               </div>
               <div>
-                <dt>Password</dt>
-                <dd>{proxy.auth_required ? "Configured and hidden" : "Not set"}</dd>
+                <dt>{t("proxies.detail.password")}</dt>
+                <dd>{proxy.auth_required ? t("proxies.detail.authConfigured") : t("common.notSet")}</dd>
               </div>
               <div>
-                <dt>Consecutive fail count</dt>
+                <dt>{t("proxies.detail.consecutiveFail")}</dt>
                 <dd>{proxy.consecutive_fail_count ?? 0}</dd>
               </div>
               <div>
-                <dt>Cooldown until</dt>
+                <dt>{t("proxies.detail.cooldownUntil")}</dt>
                 <dd>{formatDateTime(proxy.cooldown_until)}</dd>
               </div>
             </dl>
 
             <div className="detail-error">
-              <span>Last error</span>
-              <p>{proxy.last_error || "No recent error"}</p>
+              <span>{t("proxies.table.lastError")}</span>
+              <p>{proxy.last_error || t("proxies.detail.noRecentError")}</p>
             </div>
           </div>
         ) : null}

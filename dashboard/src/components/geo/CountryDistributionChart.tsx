@@ -1,4 +1,4 @@
-import { formatLatency, formatNumber } from "../../lib/format";
+import { useI18n } from "../../i18n";
 import type { GeoCountrySummary } from "../../types";
 
 interface CountryDistributionChartProps {
@@ -6,6 +6,7 @@ interface CountryDistributionChartProps {
 }
 
 export function CountryDistributionChart({ items }: CountryDistributionChartProps) {
+  const { t, formatLatency, formatNumber } = useI18n();
   const maxTotal = items[0]?.total ?? 1;
 
   return (
@@ -15,8 +16,11 @@ export function CountryDistributionChart({ items }: CountryDistributionChartProp
           <div className="stack-row-header">
             <strong>{item.country}</strong>
             <span>
-              {formatNumber(item.total)} total / {formatNumber(item.elite)} elite /{" "}
-              {formatLatency(item.avg_latency_ms)}
+              {t("geo.stackSummary", {
+                total: formatNumber(item.total),
+                elite: formatNumber(item.elite),
+                latency: formatLatency(item.avg_latency_ms)
+              })}
             </span>
           </div>
           <div className="stack-track" aria-hidden="true">

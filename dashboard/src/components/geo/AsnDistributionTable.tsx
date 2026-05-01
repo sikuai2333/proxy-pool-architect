@@ -1,4 +1,4 @@
-import { formatLatency, formatNumber } from "../../lib/format";
+import { useI18n } from "../../i18n";
 import type { GeoAsnSummary } from "../../types";
 
 interface AsnDistributionTableProps {
@@ -6,15 +6,17 @@ interface AsnDistributionTableProps {
 }
 
 export function AsnDistributionTable({ items }: AsnDistributionTableProps) {
+  const { t, formatLatency, formatNumber } = useI18n();
+
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
         <thead>
           <tr>
             <th>ASN</th>
-            <th>Total</th>
-            <th>Elite</th>
-            <th>Average latency</th>
+            <th>{t("geo.total")}</th>
+            <th>{t("geo.elite")}</th>
+            <th>{t("geo.averageLatency")}</th>
           </tr>
         </thead>
         <tbody>

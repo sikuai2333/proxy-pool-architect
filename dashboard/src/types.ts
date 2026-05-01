@@ -1,3 +1,5 @@
+import type { TranslationKey } from "./i18n";
+
 export type ProxyPool = "raw" | "checked" | "elite" | "dead" | "cooldown";
 export type ProxyScheme = "http" | "https" | "socks4" | "socks5";
 export type ProxyAnonymity = "unknown" | "transparent" | "anonymous" | "elite";
@@ -153,5 +155,5 @@ export type DashboardRoute =
 
 export interface NavigationItem {
   route: DashboardRoute;
-  label: string;
+  labelKey: TranslationKey;
 }

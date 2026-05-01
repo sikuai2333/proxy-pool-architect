@@ -1,3 +1,4 @@
+import { useI18n, type TranslationKey } from "../../i18n";
 import type { ProxyPool } from "../../types";
 
 interface ProxyStatusBadgeProps {
@@ -5,5 +6,8 @@ interface ProxyStatusBadgeProps {
 }
 
 export function ProxyStatusBadge({ status }: ProxyStatusBadgeProps) {
-  return <span className={`badge badge-status badge-status-${status}`}>{status}</span>;
+  const { t } = useI18n();
+  const labelKey = `proxyPool.${status}` as TranslationKey;
+
+  return <span className={`badge badge-status badge-status-${status}`}>{t(labelKey)}</span>;
 }

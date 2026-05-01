@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 
+import { useI18n, type TranslationKey } from "../../i18n";
 import type { ProxyAnonymity, ProxyFilterOptions, ProxyPool, ProxyScheme } from "../../types";
 
 export interface ProxyFilterState {
@@ -24,6 +25,8 @@ const schemes: Array<"" | ProxyScheme> = ["", "http", "https", "socks4", "socks5
 const anonymities: Array<"" | ProxyAnonymity> = ["", "unknown", "transparent", "anonymous", "elite"];
 
 export function ProxyFilters({ value, options, onChange, onReset }: ProxyFiltersProps) {
+  const { t } = useI18n();
+
   function updateField<Key extends keyof ProxyFilterState>(key: Key, nextValue: ProxyFilterState[Key]) {
     onChange(
       {
@@ -46,35 +49,35 @@ export function ProxyFilters({ value, options, onChange, onReset }: ProxyFilters
   }
 
   return (
-    <section className="filter-panel" aria-label="Proxy filters">
+    <section className="filter-panel" aria-label={t("proxies.filters")}>
       <div className="filter-grid">
         <label className="field">
-          <span>Pool</span>
+          <span>{t("proxies.pool")}</span>
           <select value={value.pool} onChange={(event) => updateField("pool", event.target.value as ProxyFilterState["pool"])}>
             {pools.map((pool) => (
               <option key={pool || "all"} value={pool}>
-                {pool || "All pools"}
+                {pool ? t(`proxyPool.${pool}` as TranslationKey) : t("proxies.allPools")}
               </option>
             ))}
           </select>
         </label>
 
         <label className="field">
-          <span>Scheme</span>
+          <span>{t("proxies.scheme")}</span>
           <select
             value={value.scheme}
             onChange={(event) => updateField("scheme", event.target.value as ProxyFilterState["scheme"])}
           >
             {schemes.map((scheme) => (
               <option key={scheme || "all"} value={scheme}>
-                {scheme || "All schemes"}
+                {scheme || t("proxies.allSchemes")}
               </option>
             ))}
           </select>
         </label>
 
         <label className="field">
-          <span>Anonymity</span>
+          <span>{t("proxies.anonymity")}</span>
           <select
             value={value.anonymity}
             onChange={(event) =>
@@ -83,16 +86,16 @@ export function ProxyFilters({ value, options, onChange, onReset }: ProxyFilters
           >
             {anonymities.map((anonymity) => (
               <option key={anonymity || "all"} value={anonymity}>
-                {anonymity || "All types"}
+                {anonymity ? t(`anonymity.${anonymity}` as TranslationKey) : t("proxies.allTypes")}
               </option>
             ))}
           </select>
         </label>
 
         <label className="field">
-          <span>Country</span>
+          <span>{t("proxies.country")}</span>
           <select value={value.country} onChange={(event) => updateField("country", event.target.value)}>
-            <option value="">All countries</option>
+            <option value="">{t("proxies.allCountries")}</option>
             {options.countries.map((country) => (
               <option key={country} value={country}>
                 {country}
@@ -102,9 +105,9 @@ export function ProxyFilters({ value, options, onChange, onReset }: ProxyFilters
         </label>
 
         <label className="field">
-          <span>Source</span>
+          <span>{t("proxies.source")}</span>
           <select value={value.source} onChange={(event) => updateField("source", event.target.value)}>
-            <option value="">All sources</option>
+            <option value="">{t("proxies.allSources")}</option>
             {options.sources.map((source) => (
               <option key={source} value={source}>
                 {source}
@@ -114,7 +117,7 @@ export function ProxyFilters({ value, options, onChange, onReset }: ProxyFilters
         </label>
 
         <label className="field">
-          <span>Minimum score</span>
+          <span>{t("proxies.minScore")}</span>
           <input
             name="minScore"
             type="number"
@@ -127,20 +130,20 @@ export function ProxyFilters({ value, options, onChange, onReset }: ProxyFilters
         </label>
 
         <label className="field field-search">
-          <span>Host or IP</span>
+          <span>{t("proxies.hostOrIp")}</span>
           <input
             name="query"
             type="search"
             value={value.query}
             onChange={onInputChange}
-            placeholder="Search host or proxy id"
+            placeholder={t("proxies.searchPlaceholder")}
           />
         </label>
       </div>
 
       <div className="filter-actions">
         <button className="button button-secondary" type="button" onClick={onReset}>
-          Reset filters
+          {t("proxies.resetFilters")}
         </button>
       </div>
     </section>

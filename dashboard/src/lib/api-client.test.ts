@@ -23,8 +23,21 @@ describe("dashboard API client", () => {
     expect(overview.health.scheduler).toBe("running");
   });
 
-  it("keeps live integration out of phase 0", async () => {
-    const client = createDashboardApiClient({ mode: "live", mockDelayMs: 0 });
+  it("raises API errors when live overview requests fail", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Service unavailable" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://dashboard.test",
+      timeoutMs: 1000,
+      mockDelayMs: 0
+    });
 
     await expect(client.getOverview()).rejects.toBeInstanceOf(DashboardApiError);
   });
