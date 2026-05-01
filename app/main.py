@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_dashboard_api import router as dashboard_api_router
@@ -25,6 +26,13 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         lifespan=_lifespan,
     )
+    if settings.cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_allowed_origins,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+        )
     app.state.store = RedisStore.from_url(settings.redis_url)
     app.state.runtime_activity = RuntimeActivityService()
     app.state.scheduler = SchedulerService(

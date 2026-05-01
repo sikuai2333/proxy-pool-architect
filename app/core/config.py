@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
+    cors_allowed_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
+    )
     log_level: str = "INFO"
     log_json: bool = False
     redis_url: str = "redis://localhost:6379/0"

@@ -329,6 +329,7 @@ as the starting point.
 | `APP_ENV` | `dev` | Application environment label |
 | `APP_HOST` | `0.0.0.0` | Host used by local run commands |
 | `APP_PORT` | `8000` | Port used by local run commands |
+| `CORS_ALLOWED_ORIGINS` | `["http://localhost:5173","http://127.0.0.1:5173"]` | Origins allowed to call the API from the React dashboard dev server |
 | `LOG_LEVEL` | `INFO` | Application log level |
 | `LOG_JSON` | `false` | Emit structured JSON logs |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
