@@ -37,6 +37,7 @@ class CoreAdapterProvider(ProxyProvider):
         shutdown_on_exit: bool = True,
     ) -> None:
         self._core_name = core_name
+        self.name = f"core_adapter:{core_name}"
         self.enabled = enabled
         self._command = command or []
         self._working_dir = working_dir
@@ -79,7 +80,7 @@ class CoreAdapterProvider(ProxyProvider):
                 scheme=scheme,
                 host=host,
                 port=port,
-                source=f"{self.name}:{self._core_name}",
+                source=self.name,
             )
         ]
 
@@ -187,7 +188,13 @@ def _is_local_readiness_url(url: str) -> bool:
 def _int_or_none(value: object) -> int | None:
     if value is None:
         return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str | bytes | bytearray):
+        return None
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except ValueError:
         return None

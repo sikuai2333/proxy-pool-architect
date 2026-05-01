@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     validate_interval_seconds: int = Field(default=600, ge=1)
     validate_batch_size: int = Field(default=100, ge=1)
     metrics_enabled: bool = True
+    safe_authorized_targets_only: bool = True
+    safe_block_private_networks: bool = True
+    safe_mask_proxy_credentials: bool = True
 
 
 @lru_cache

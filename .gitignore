@@ -44,6 +44,15 @@ Thumbs.db
 .docker/
 docker-data/
 
+# Frontend dashboard artifacts
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.vite/
+dashboard/coverage/
+dashboard/*.tsbuildinfo
+dashboard/vite.config.js
+dashboard/vite.config.d.ts
+
 # Local provider and Geo data may contain credentials or licensed datasets
 config/providers.yaml
 config/geo.csv

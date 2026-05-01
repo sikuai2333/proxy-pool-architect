@@ -114,7 +114,49 @@ def test_list_proxies_filters_by_pool_and_country() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["count"] == 1
+    assert payload["total"] == 1
+    assert payload["items"][0]["id"] == "http-1.2.3.4-8080"
     assert payload["proxies"][0]["id"] == "http-1.2.3.4-8080"
+
+
+def test_list_proxies_supports_source_query_and_all_pool_contract() -> None:
+    client, store = make_client()
+    asyncio.run(
+        store.add_proxy(
+            "checked",
+            make_proxy("http-1.2.3.4-8080", country="US").model_copy(
+                update={"source": "provider-a"}
+            ),
+        )
+    )
+    asyncio.run(
+        store.add_proxy(
+            "elite",
+            make_proxy("http-5.6.7.8-8080", country="US").model_copy(
+                update={"source": "provider-b"}
+            ),
+        )
+    )
+
+    response = client.get("/proxy/list", params={"source": "provider-b", "q": "5.6.7.8"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["count"] == 1
+    assert payload["items"][0]["id"] == "http-5.6.7.8-8080"
+
+
+def test_get_proxy_detail_returns_proxy_by_id() -> None:
+    client, store = make_client()
+    asyncio.run(store.add_proxy("elite", make_proxy("http-1.2.3.4-8080")))
+
+    response = client.get("/proxy/http-1.2.3.4-8080")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == "http-1.2.3.4-8080"
+    assert payload["auth_required"] is False
 
 
 def test_report_proxy_updates_score_and_counts() -> None:
@@ -162,6 +204,7 @@ def test_stats_returns_pool_counts_and_rates() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["pools"]["checked"] == 1
+    assert payload["checked"] == 1
     assert payload["total"] == 1
     assert payload["average_latency_ms"] == 120
     assert payload["success_rate"] == 2 / 3
@@ -174,7 +217,7 @@ def test_delete_proxy_removes_proxy() -> None:
     response = client.delete("/proxy/http-1.2.3.4-8080")
 
     assert response.status_code == 200
-    assert response.json() == {"proxy_id": "http-1.2.3.4-8080", "deleted": True}
+    assert response.json() == {"proxy_id": "http-1.2.3.4-8080", "deleted": True, "ok": True}
     assert asyncio.run(store.get_proxy("http-1.2.3.4-8080")) is None
 
 

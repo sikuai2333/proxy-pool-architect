@@ -15,3 +15,10 @@ __pycache__
 !.env.example
 config/providers.yaml
 config/geo.csv
+dashboard/node_modules
+dashboard/dist
+dashboard/.vite
+dashboard/coverage
+dashboard/*.tsbuildinfo
+dashboard/vite.config.js
+dashboard/vite.config.d.ts

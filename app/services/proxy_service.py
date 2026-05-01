@@ -36,15 +36,23 @@ class ProxyService:
 
     async def list_proxies(
         self,
-        pool: ProxyPool,
+        pool: ProxyPool | None,
         filters: ProxyFilters,
         limit: int,
         offset: int,
-    ) -> list[ProxyEndpoint]:
-        scan_limit = max(limit + offset, 100)
-        proxies = await self._store.list_proxies(pool, limit=scan_limit, offset=0)
+    ) -> tuple[list[ProxyEndpoint], int]:
+        if pool is None:
+            proxies = await self._store.list_all_proxies()
+        else:
+            counts = await self._store.count_by_pool()
+            proxies = await self._store.list_proxies(pool, limit=counts.get(pool, 0), offset=0)
         filtered = [proxy for proxy in proxies if self._matches_filters(proxy, filters)]
-        return filtered[offset : offset + limit]
+        filtered.sort(key=lambda item: (-item.score, item.id))
+        total = len(filtered)
+        return filtered[offset : offset + limit], total
+
+    async def get_proxy_detail(self, proxy_id: str) -> ProxyEndpoint | None:
+        return await self._store.get_proxy(proxy_id)
 
     async def report_result(self, report: ReportProxyRequest) -> ProxyEndpoint | None:
         proxy = await self._store.get_proxy(report.proxy_id)
@@ -122,4 +130,10 @@ class ProxyService:
             return False
         if filters.country is not None and proxy.country != filters.country:
             return False
+        if filters.source is not None and proxy.source != filters.source:
+            return False
+        if filters.query is not None:
+            query = filters.query.strip().casefold()
+            if query and query not in proxy.host.casefold() and query not in proxy.id.casefold():
+                return False
         return not (filters.min_score is not None and proxy.score < filters.min_score)

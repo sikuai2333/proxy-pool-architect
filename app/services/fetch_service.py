@@ -1,7 +1,21 @@
+from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
 from app.providers.manager import ProviderManager
 from app.services.geo_service import GeoResolver
 from app.storage.redis_store import RedisStore
+from app.utils.time import utc_now_iso
+
+
+class FetchRunReport:
+    def __init__(
+        self,
+        stored: list[ProxyEndpoint],
+        provider_results: list[ProviderFetchResult],
+        fetched_at: str,
+    ) -> None:
+        self.stored = stored
+        self.provider_results = provider_results
+        self.fetched_at = fetched_at
 
 
 class FetchService:
@@ -16,14 +30,22 @@ class FetchService:
         self._geo_resolver = geo_resolver
 
     async def fetch_to_raw_pool(self) -> list[ProxyEndpoint]:
-        proxies = await self._provider_manager.fetch_all()
+        report = await self.fetch_to_raw_pool_with_report()
+        return report.stored
+
+    async def fetch_to_raw_pool_with_report(self) -> FetchRunReport:
+        proxies, provider_results = await self._provider_manager.fetch_all_with_metadata()
         enriched = [self._enrich(proxy) for proxy in proxies]
         deduplicated = self._deduplicate(enriched)
 
         stored: list[ProxyEndpoint] = []
         for proxy in deduplicated:
             stored.append(await self._store.add_proxy("raw", proxy))
-        return stored
+        return FetchRunReport(
+            stored=stored,
+            provider_results=provider_results,
+            fetched_at=utc_now_iso(),
+        )
 
     @staticmethod
     def _deduplicate(proxies: list[ProxyEndpoint]) -> list[ProxyEndpoint]:

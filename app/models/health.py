@@ -9,3 +9,5 @@ class HealthResponse(BaseModel):
     version: str
     environment: str
     redis_configured: bool
+    redis: Literal["ok", "error", "unknown"] = "unknown"
+    scheduler: Literal["running", "stopped", "unknown"] = "unknown"

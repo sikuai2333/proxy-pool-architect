@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
-from app.api.dependencies import get_store
+from app.api.dependencies import get_runtime_activity, get_store
 from app.core.config import get_settings
 from app.models.api import (
     DeleteProxyResponse,
@@ -15,6 +15,7 @@ from app.models.api import (
 )
 from app.models.proxy import ProxyAnonymity, ProxyFilters, ProxyPool, ProxyScheme
 from app.services.proxy_service import ProxyService
+from app.services.runtime_activity_service import RuntimeActivityService
 from app.storage.redis_store import RedisStore
 from app.utils.proxy_url import format_proxy_url
 
@@ -63,37 +64,66 @@ async def get_proxy(
 @router.get("/proxy/list", response_model=ProxyListResponse)
 async def list_proxies(
     service: Annotated[ProxyService, Depends(get_proxy_service)],
-    pool: ProxyPool = "checked",
+    pool: ProxyPool | None = None,
     scheme: ProxyScheme | None = None,
     anonymity: ProxyAnonymity | None = None,
     country: str | None = None,
+    source: str | None = None,
+    q: Annotated[str | None, Query(min_length=1, max_length=255)] = None,
     min_score: int | None = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ProxyListResponse:
-    proxies = await service.list_proxies(
+    proxies, total = await service.list_proxies(
         pool=pool,
         filters=ProxyFilters(
             scheme=scheme,
             anonymity=anonymity,
             country=country,
+            source=source,
+            query=q,
             min_score=min_score,
         ),
         limit=limit,
         offset=offset,
     )
     responses = [ProxyResponse.from_endpoint(proxy) for proxy in proxies]
-    return ProxyListResponse(proxies=responses, count=len(responses), limit=limit, offset=offset)
+    return ProxyListResponse(
+        items=responses,
+        total=total,
+        proxies=responses,
+        count=len(responses),
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/proxy/{proxy_id}", response_model=ProxyResponse)
+async def get_proxy_detail(
+    proxy_id: str,
+    service: Annotated[ProxyService, Depends(get_proxy_service)],
+) -> ProxyResponse:
+    proxy = await service.get_proxy_detail(proxy_id)
+    if proxy is None:
+        raise HTTPException(status_code=404, detail="proxy not found")
+    return ProxyResponse.from_endpoint(proxy)
 
 
 @router.post("/proxy/report", response_model=ReportProxyResponse)
 async def report_proxy_result(
     report: ReportProxyRequest,
     service: Annotated[ProxyService, Depends(get_proxy_service)],
+    runtime_activity: Annotated[RuntimeActivityService, Depends(get_runtime_activity)],
 ) -> ReportProxyResponse:
     proxy = await service.report_result(report)
     if proxy is None:
         raise HTTPException(status_code=404, detail="proxy not found")
+    if not report.ok:
+        runtime_activity.record_event(
+            "proxy_reported_failure",
+            "warning",
+            f"Proxy {proxy.id} was reported as failed.",
+        )
     return ReportProxyResponse(
         proxy_id=proxy.id,
         status=proxy.status,
@@ -107,8 +137,14 @@ async def report_proxy_result(
 async def delete_proxy(
     proxy_id: str,
     service: Annotated[ProxyService, Depends(get_proxy_service)],
+    runtime_activity: Annotated[RuntimeActivityService, Depends(get_runtime_activity)],
 ) -> DeleteProxyResponse:
     deleted = await service.delete_proxy(proxy_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="proxy not found")
-    return DeleteProxyResponse(proxy_id=proxy_id, deleted=True)
+    runtime_activity.record_event(
+        "proxy_deleted",
+        "info",
+        f"Proxy {proxy_id} was deleted from the pool.",
+    )
+    return DeleteProxyResponse(proxy_id=proxy_id, deleted=True, ok=True)

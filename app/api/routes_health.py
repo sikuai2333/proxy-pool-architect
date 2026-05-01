@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.core.config import get_settings
 from app.models.health import HealthResponse
@@ -8,5 +8,8 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health() -> HealthResponse:
-    return build_health_response(get_settings())
+async def health(request: Request) -> HealthResponse:
+    return build_health_response(
+        get_settings(),
+        scheduler_running=bool(request.app.state.scheduler.running),
+    )

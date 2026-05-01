@@ -1,4 +1,5 @@
 from app.core.config import Settings
+from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
 from app.providers.base import ProxyProvider
 from app.providers.config_loader import build_providers_from_specs, load_provider_specs
@@ -35,8 +36,40 @@ class ProviderManager:
     def enabled_providers(self) -> list[ProxyProvider]:
         return [provider for provider in self._providers if provider.enabled]
 
+    @property
+    def providers(self) -> list[ProxyProvider]:
+        return list(self._providers)
+
     async def fetch_all(self) -> list[ProxyEndpoint]:
-        proxies: list[ProxyEndpoint] = []
-        for provider in self.enabled_providers:
-            proxies.extend(await provider.fetch())
+        proxies, _ = await self.fetch_all_with_metadata()
         return proxies
+
+    async def fetch_all_with_metadata(
+        self,
+    ) -> tuple[list[ProxyEndpoint], list[ProviderFetchResult]]:
+        proxies: list[ProxyEndpoint] = []
+        results: list[ProviderFetchResult] = []
+        for provider in self.providers:
+            if not provider.enabled:
+                results.append(ProviderFetchResult(name=provider.name, enabled=False))
+                continue
+            try:
+                fetched = await provider.fetch()
+            except Exception as exc:
+                results.append(
+                    ProviderFetchResult(
+                        name=provider.name,
+                        enabled=True,
+                        error=exc.__class__.__name__,
+                    )
+                )
+                continue
+            proxies.extend(fetched)
+            results.append(
+                ProviderFetchResult(
+                    name=provider.name,
+                    enabled=True,
+                    fetched_count=len(fetched),
+                )
+            )
+        return proxies, results

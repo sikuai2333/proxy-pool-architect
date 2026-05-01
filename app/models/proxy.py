@@ -39,4 +39,6 @@ class ProxyFilters(BaseModel):
     scheme: ProxyScheme | None = None
     anonymity: ProxyAnonymity | None = None
     country: str | None = None
+    source: str | None = None
+    query: str | None = None
     min_score: int | None = None

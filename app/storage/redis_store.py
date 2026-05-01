@@ -164,6 +164,16 @@ class RedisStore:
             counts[pool] = await self._client.zcard(pool_index_key(pool))
         return counts
 
+    async def list_all_proxies(self) -> list[ProxyEndpoint]:
+        counts = await self.count_by_pool()
+        proxies: list[ProxyEndpoint] = []
+        for pool in POOL_NAMES:
+            total = counts.get(pool, 0)
+            if total <= 0:
+                continue
+            proxies.extend(await self.list_proxies(pool, limit=total, offset=0))
+        return proxies
+
     async def _save_proxy(self, pool: ProxyPool, proxy: ProxyEndpoint) -> None:
         await self._client.set(proxy_key(pool, proxy.id), serialize_proxy(proxy))
         await self._client.set(proxy_pool_key(proxy.id), pool)
@@ -196,4 +206,10 @@ class RedisStore:
             return False
         if filters.country is not None and proxy.country != filters.country:
             return False
+        if filters.source is not None and proxy.source != filters.source:
+            return False
+        if filters.query is not None:
+            query = filters.query.strip().casefold()
+            if query and query not in proxy.host.casefold() and query not in proxy.id.casefold():
+                return False
         return not (filters.min_score is not None and proxy.score < filters.min_score)

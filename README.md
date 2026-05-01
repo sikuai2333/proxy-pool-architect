@@ -30,7 +30,9 @@ Phase 5 scheduler integration, Phase 6 basic dashboard, and Phase 7 production b
 - `ValidateService` with bounded concurrency, scoring, and pool movement
 - cooldown handling for failed proxies and scheduled release back to `raw`
 - optional `session_id` affinity for stable per-task proxy selection
-- `/proxy`, `/proxy/list`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
+- `/proxy`, `/proxy/list`, `/proxy/{proxy_id}`, `/proxy/report`, `/stats`, and `DELETE /proxy/{proxy_id}` APIs
+- dashboard support APIs for `/providers`, `/providers/{provider_name}`, `/geo/summary`,
+  `/validation/jobs`, `/events`, `/settings`, and `PATCH /settings`
 - APScheduler-backed fetch and validation jobs, disabled by default
 - lightweight `/dashboard` page for counts, source distribution, latency, success rate, and delete actions
 - Prometheus-compatible `/metrics`, optional JSON logs, Docker image hardening, and CI workflow
@@ -77,7 +79,9 @@ Expected response:
   "app": "ProxyPool Architect",
   "version": "0.1.0",
   "environment": "dev",
-  "redis_configured": true
+  "redis_configured": true,
+  "redis": "ok",
+  "scheduler": "stopped"
 }
 ```
 
@@ -189,6 +193,18 @@ List proxies:
 curl "http://localhost:8000/proxy/list?pool=checked&limit=50&offset=0"
 ```
 
+List proxies across all pools with source and host search filters:
+
+```bash
+curl "http://localhost:8000/proxy/list?source=static&q=1.2.3.4&limit=50&offset=0"
+```
+
+Get proxy details:
+
+```bash
+curl "http://localhost:8000/proxy/http-1.2.3.4-8080"
+```
+
 Report usage result:
 
 ```bash
@@ -207,6 +223,24 @@ Delete a proxy:
 
 ```bash
 curl -X DELETE "http://localhost:8000/proxy/http-1.2.3.4-8080"
+```
+
+Get provider, geo, validation, event, and settings data for the React dashboard:
+
+```bash
+curl "http://localhost:8000/providers"
+curl "http://localhost:8000/geo/summary"
+curl "http://localhost:8000/validation/jobs"
+curl "http://localhost:8000/events"
+curl "http://localhost:8000/settings"
+```
+
+Update safe runtime dashboard settings:
+
+```bash
+curl -X PATCH "http://localhost:8000/settings" \
+  -H "Content-Type: application/json" \
+  -d '{"fetch_interval_seconds":900,"validate_interval_seconds":300,"validate_timeout_seconds":5,"validate_concurrency":50,"min_elite_score":85,"cooldown_seconds":1200,"safe_networking":{"authorized_targets_only":true,"block_private_networks":true,"mask_proxy_credentials":true}}'
 ```
 
 JSON proxy responses use a public schema and do not include stored proxy passwords.
@@ -260,6 +294,18 @@ It shows pool counts, provider source distribution, average latency, success rat
 table with delete actions. It uses the existing API and storage services and does not add a
 frontend framework dependency.
 
+A separate React dashboard app is available under `dashboard/`. It currently includes the Phase 0
+shell, the Phase 1 Proxies workflow, the Phase 2 live API client, the Phase 3 Geo, Providers,
+Validation, and Logs pages, and the Phase 4 Settings workflow:
+
+```bash
+cd dashboard
+pnpm install
+pnpm dev
+```
+
+The frontend development server listens on `http://localhost:5173`.
+
 ## CI
 
 GitHub Actions is configured in `.github/workflows/ci.yml` to run:
@@ -309,6 +355,9 @@ as the starting point.
 | `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |
 | `VALIDATE_BATCH_SIZE` | `100` | Max raw proxies validated per job run |
 | `METRICS_ENABLED` | `true` | Enable `/metrics` endpoint |
+| `SAFE_AUTHORIZED_TARGETS_ONLY` | `true` | Keep runtime controls limited to approved targets |
+| `SAFE_BLOCK_PRIVATE_NETWORKS` | `true` | Default safe-networking guard for private ranges |
+| `SAFE_MASK_PROXY_CREDENTIALS` | `true` | Keep proxy credentials masked in dashboard responses |
 
 ## Safety Boundary
 

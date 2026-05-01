@@ -54,6 +54,8 @@ class ProxyResponse(BaseModel):
 
 
 class ProxyListResponse(BaseModel):
+    items: list[ProxyResponse]
+    total: int
     proxies: list[ProxyResponse]
     count: int
     limit: int = Field(ge=1)
@@ -78,6 +80,7 @@ class ReportProxyResponse(BaseModel):
 class DeleteProxyResponse(BaseModel):
     proxy_id: str
     deleted: bool
+    ok: bool = True
 
 
 class StatsResponse(BaseModel):
@@ -85,3 +88,12 @@ class StatsResponse(BaseModel):
     total: int
     average_latency_ms: float | None = None
     success_rate: float | None = None
+    raw: int = 0
+    checked: int = 0
+    elite: int = 0
+    dead: int = 0
+    cooldown: int = 0
+    last_fetch_at: str | None = None
+    last_validate_at: str | None = None
+    redis_status: Literal["ok", "error", "unknown"] = "unknown"
+    scheduler_status: Literal["running", "stopped", "unknown"] = "unknown"
