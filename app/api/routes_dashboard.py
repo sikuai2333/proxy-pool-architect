@@ -4,13 +4,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
+from app.api.auth import require_admin_auth
 from app.api.dependencies import get_store
 from app.models.api import ProxyResponse
 from app.models.dashboard import DashboardView
 from app.services.dashboard_service import DashboardService
 from app.storage.redis_store import RedisStore
 
-router = APIRouter(tags=["dashboard"])
+router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_admin_auth)])
 
 
 def get_dashboard_service(store: Annotated[RedisStore, Depends(get_store)]) -> DashboardService:

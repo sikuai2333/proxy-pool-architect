@@ -1,12 +1,20 @@
 services:
   api:
     build: .
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     environment:
       APP_ENV: dev
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
       LOG_LEVEL: INFO
       REDIS_URL: redis://redis:6379/0
+      SCHEDULER_ENABLED: "true"
+      VALIDATE_INTERVAL_SECONDS: "60"
+      VALIDATE_BATCH_SIZE: "500"
     ports:
       - "8000:8000"
     volumes:
@@ -17,6 +25,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"

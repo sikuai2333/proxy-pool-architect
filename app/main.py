@@ -3,7 +3,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.routes_auth import router as auth_router
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_dashboard_api import router as dashboard_api_router
 from app.api.routes_health import router as health_router
@@ -26,21 +29,35 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         lifespan=_lifespan,
     )
+    if settings.allowed_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    if settings.gzip_minimum_size > 0:
+        app.add_middleware(GZipMiddleware, minimum_size=settings.gzip_minimum_size)
     if settings.cors_allowed_origins:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_allowed_origins,
             allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
             allow_headers=["*"],
+            allow_credentials=settings.cors_allow_credentials,
         )
-    app.state.store = RedisStore.from_url(settings.redis_url)
-    app.state.runtime_activity = RuntimeActivityService()
+    app.state.store = RedisStore.from_url(
+        settings.redis_url,
+        list_cache_ttl_seconds=settings.proxy_list_cache_ttl_seconds,
+    )
+    app.state.runtime_activity = RuntimeActivityService(
+        event_limit=settings.runtime_event_limit,
+        validation_job_limit=settings.runtime_validation_job_limit,
+        event_retention_seconds=settings.runtime_event_retention_seconds,
+        validation_job_retention_seconds=settings.runtime_validation_job_retention_seconds,
+    )
     app.state.scheduler = SchedulerService(
         settings,
         app.state.store,
         runtime_activity=app.state.runtime_activity,
     )
     app.state.metrics_enabled = settings.metrics_enabled
+    app.include_router(auth_router)
     app.include_router(dashboard_api_router)
     app.include_router(dashboard_router)
     app.include_router(health_router)

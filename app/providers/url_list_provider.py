@@ -6,7 +6,7 @@ from loguru import logger
 
 from app.models.proxy import ProxyEndpoint
 from app.providers.base import ProxyProvider
-from app.utils.proxy_url import ProxyUrlParseError, parse_proxy_url
+from app.utils.proxy_text import extract_proxies_from_text
 
 
 class UrlListProvider(ProxyProvider):
@@ -70,16 +70,14 @@ class UrlListProvider(ProxyProvider):
         return self._parse_lines(response.text, url_label)
 
     def _parse_lines(self, content: str, source_label: str) -> list[ProxyEndpoint]:
-        proxies: list[ProxyEndpoint] = []
-        for raw_line in content.splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-            try:
-                proxies.append(parse_proxy_url(line, self.name))
-            except ProxyUrlParseError as exc:
-                logger.warning("Skipping invalid proxy from {}: {}", source_label, exc)
-        return proxies
+        result = extract_proxies_from_text(content, file_type="all", source=self.name)
+        if result.invalid_count:
+            logger.warning(
+                "Skipped {} invalid proxy entries from {}",
+                result.invalid_count,
+                source_label,
+            )
+        return result.proxies
 
     @staticmethod
     def _safe_url_label(url: str) -> str:

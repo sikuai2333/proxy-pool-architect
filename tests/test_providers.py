@@ -65,6 +65,23 @@ def test_url_list_provider_parses_text_lines() -> None:
     ]
 
 
+def test_url_list_provider_accepts_bare_host_port_entries() -> None:
+    provider = UrlListProvider(urls=[], enabled=True)
+
+    proxies = provider._parse_lines(
+        """
+        1.2.3.4:8080
+        5.6.7.8:3128
+        """,
+        source_label="test-source",
+    )
+
+    assert [proxy.id for proxy in proxies] == [
+        "http-1.2.3.4-8080",
+        "http-5.6.7.8-3128",
+    ]
+
+
 def test_provider_manager_fetches_enabled_providers_only() -> None:
     async def run() -> None:
         enabled = StaticProvider(["http://1.2.3.4:8080"], enabled=True)

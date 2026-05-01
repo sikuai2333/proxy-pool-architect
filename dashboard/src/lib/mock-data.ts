@@ -1,4 +1,5 @@
 import type {
+  AuthSessionStatus,
   DashboardStats,
   DashboardSettings,
   DeleteProxyResult,
@@ -9,6 +10,9 @@ import type {
   ProviderSummary,
   ProxyEndpoint,
   ProxyFilterOptions,
+  PaginatedResponse,
+  ProxyUrlImportFileType,
+  ProxyUrlImportResult,
   ProxyListQuery,
   ProxyListResponse,
   ValidationJob
@@ -36,6 +40,14 @@ export const mockHealth: HealthStatus = {
   status: "ok",
   redis: "ok",
   scheduler: "running"
+};
+
+const mockAuthSession: AuthSessionStatus = {
+  enabled: false,
+  authenticated: false,
+  username: null,
+  expires_at: null,
+  auth_method: "disabled"
 };
 
 function createProxyId(scheme: string, host: string, port: number) {
@@ -487,6 +499,15 @@ function delay<T>(value: T, delayMs: number) {
   });
 }
 
+function paginateItems<T>(items: T[], limit: number, offset: number): PaginatedResponse<T> {
+  return {
+    items: items.slice(offset, offset + limit),
+    total: items.length,
+    limit,
+    offset
+  };
+}
+
 export async function listMockProxies(
   query: ProxyListQuery = {},
   delayMs = 120
@@ -543,12 +564,119 @@ export async function getMockProviders(delayMs = 80): Promise<ProviderSummary[]>
   return delay(deriveProviderSummaries(mockProxyStore), delayMs);
 }
 
-export async function getMockValidationJobs(delayMs = 80): Promise<ValidationJob[]> {
-  return delay(mockValidationJobs.map((item) => ({ ...item })), delayMs);
+export async function submitMockProxyUrl(
+  url: string,
+  fileType: ProxyUrlImportFileType,
+  delayMs = 120
+): Promise<ProxyUrlImportResult> {
+  const host = new URL(url).hostname || "mock.local";
+  const source = `url_submit:${fileType}:${host}`;
+  const directImported = [
+    createMockProxy({
+      scheme: fileType === "socks5" ? "socks5" : "http",
+      host: "11.22.33.44",
+      port: fileType === "socks5" ? 1080 : 8080,
+      source,
+      country: "US",
+      asn: "AS64500",
+      anonymity: "unknown",
+      latency_ms: null,
+      success_count: 0,
+      fail_count: 0,
+      score: 0,
+      last_checked_at: null,
+      last_success_at: null,
+      last_error: null,
+      status: "raw"
+    }),
+    createMockProxy({
+      scheme: "https",
+      host: "55.66.77.88",
+      port: 8443,
+      source,
+      country: "SG",
+      asn: "AS15169",
+      anonymity: "unknown",
+      latency_ms: null,
+      success_count: 0,
+      fail_count: 0,
+      score: 0,
+      last_checked_at: null,
+      last_success_at: null,
+      last_error: null,
+      status: "raw"
+    })
+  ];
+  const adapterRequiredCount = fileType === "v2ray" ? 3 : fileType === "clash" ? 2 : fileType === "auto" ? 1 : 0;
+  const unsupportedCount = fileType === "clash" ? 1 : 0;
+  const imported = fileType === "v2ray" ? [] : directImported;
+
+  const existingIds = new Set(mockProxyStore.map((proxy) => proxy.id));
+  const uniqueImported = imported.filter((proxy) => !existingIds.has(proxy.id));
+  mockProxyStore = [...uniqueImported.map(cloneProxy), ...mockProxyStore];
+
+  const detectedFormat =
+    fileType === "clash" ? "clash_yaml" : fileType === "v2ray" ? "base64_uri_list" : "plain_text";
+  const detectedProtocols =
+    fileType === "v2ray"
+      ? ["trojan", "vless", "vmess"]
+      : fileType === "clash"
+        ? ["http", "socks5", "trojan", "vmess"]
+        : fileType === "socks5"
+          ? ["socks5"]
+          : ["http", "https"];
+
+  return delay(
+    {
+      source,
+      file_type: fileType,
+      detected_format: detectedFormat,
+      fetched_count: directImported.length + adapterRequiredCount + unsupportedCount,
+      valid_count: imported.length + adapterRequiredCount,
+      stored_count: uniqueImported.length,
+      duplicate_count: imported.length - uniqueImported.length,
+      invalid_count: 0,
+      direct_supported_count: imported.length,
+      adapter_required_count: adapterRequiredCount,
+      unsupported_count: unsupportedCount,
+      detected_protocols: detectedProtocols,
+      supported_connection_modes: [
+        ...(imported.length > 0 ? ["direct" as const] : []),
+        ...(adapterRequiredCount > 0 ? ["core_adapter" as const] : [])
+      ]
+    },
+    delayMs
+  );
 }
 
-export async function getMockEvents(delayMs = 80): Promise<EventLogEntry[]> {
-  return delay(mockEvents.map((item) => ({ ...item })), delayMs);
+export async function getMockValidationJobs(
+  limit = 10,
+  offset = 0,
+  delayMs = 80
+): Promise<PaginatedResponse<ValidationJob>> {
+  return delay(
+    paginateItems(
+      mockValidationJobs.map((item) => ({ ...item })),
+      limit,
+      offset
+    ),
+    delayMs
+  );
+}
+
+export async function getMockEvents(
+  limit = 20,
+  offset = 0,
+  delayMs = 80
+): Promise<PaginatedResponse<EventLogEntry>> {
+  return delay(
+    paginateItems(
+      mockEvents.map((item) => ({ ...item })),
+      limit,
+      offset
+    ),
+    delayMs
+  );
 }
 
 export async function getMockSettings(delayMs = 80): Promise<DashboardSettings> {
@@ -559,6 +687,31 @@ export async function getMockSettings(delayMs = 80): Promise<DashboardSettings> 
     },
     delayMs
   );
+}
+
+export async function getMockAuthSession(delayMs = 80): Promise<AuthSessionStatus> {
+  return delay({ ...mockAuthSession }, delayMs);
+}
+
+export async function loginMockDashboard(
+  username: string,
+  _password: string,
+  delayMs = 120
+): Promise<AuthSessionStatus> {
+  return delay(
+    {
+      enabled: false,
+      authenticated: true,
+      username,
+      expires_at: null,
+      auth_method: "disabled"
+    },
+    delayMs
+  );
+}
+
+export async function logoutMockDashboard(delayMs = 80): Promise<AuthSessionStatus> {
+  return delay({ ...mockAuthSession }, delayMs);
 }
 
 export async function updateMockSettings(

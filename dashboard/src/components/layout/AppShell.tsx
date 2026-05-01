@@ -8,7 +8,10 @@ interface AppShellProps {
   activeRoute: DashboardRoute;
   modeLabel: string;
   themeLabel: string;
+  userLabel?: string | null;
+  logoutLabel?: string | null;
   onToggleTheme: () => void;
+  onLogout?: () => void;
   children: ReactNode;
 }
 
@@ -16,7 +19,10 @@ export function AppShell({
   activeRoute,
   modeLabel,
   themeLabel,
+  userLabel,
+  logoutLabel,
   onToggleTheme,
+  onLogout,
   children
 }: AppShellProps) {
   const { t } = useI18n();
@@ -45,9 +51,15 @@ export function AppShell({
         <header className="topbar">
           <h1>{t(routeTitleKeys[activeRoute])}</h1>
           <div className="topbar-actions">
+            {userLabel ? <span className="mode-badge">{userLabel}</span> : null}
             <button className="button button-secondary" type="button" onClick={onToggleTheme}>
               {themeLabel}
             </button>
+            {onLogout && logoutLabel ? (
+              <button className="button button-secondary" type="button" onClick={onLogout}>
+                {logoutLabel}
+              </button>
+            ) : null}
             <span className="mode-badge">{modeLabel}</span>
           </div>
         </header>

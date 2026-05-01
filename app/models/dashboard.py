@@ -47,7 +47,17 @@ class GeoAsnSummary(BaseModel):
     avg_latency_ms: float | None = Field(default=None, ge=0)
 
 
+class GeoCoverageSummary(BaseModel):
+    total_proxies: int = Field(ge=0)
+    geo_tagged_proxies: int = Field(ge=0)
+    unresolved_proxies: int = Field(ge=0)
+    geo_enabled: bool
+    geo_file: str
+    geo_file_exists: bool
+
+
 class GeoSummaryResponse(BaseModel):
+    coverage: GeoCoverageSummary
     countries: list[GeoCountrySummary]
     asns: list[GeoAsnSummary]
 
@@ -69,6 +79,9 @@ class ValidationJob(BaseModel):
 
 class ValidationJobListResponse(BaseModel):
     items: list[ValidationJob]
+    total: int = Field(ge=0)
+    limit: int = Field(ge=1)
+    offset: int = Field(ge=0)
 
 
 class EventLogEntry(BaseModel):
@@ -81,6 +94,9 @@ class EventLogEntry(BaseModel):
 
 class EventListResponse(BaseModel):
     items: list[EventLogEntry]
+    total: int = Field(ge=0)
+    limit: int = Field(ge=1)
+    offset: int = Field(ge=0)
 
 
 class SafeNetworkingSettings(BaseModel):

@@ -30,11 +30,15 @@ providers:
       concurrency: 5
 ```
 
+Configured URL lists can contain full proxy URLs such as `http://1.2.3.4:8080` or bare
+`host:port` entries. Bare entries default to `http://` when the provider cannot infer a scheme.
+
 ### clash_subscription
 
-Parses Clash/FlClash style YAML subscriptions and plain text HTTP/SOCKS URL lists. Supported
-Clash node types are `http`, `socks4`, and `socks5`. Unsupported types such as `vmess`,
-`trojan`, and `ss` are skipped because they are not simple HTTP/SOCKS proxy endpoints.
+Parses Clash/FlClash style YAML subscriptions, V2Ray/Xray URI lists, and plain text
+HTTP/SOCKS URL lists. Direct HTTP/SOCKS entries are converted into pool proxies. Advanced node
+types such as `vmess`, `vless`, `trojan`, `ss`, `hysteria2`, and `tuic` are recognized and
+classified as requiring a local core adapter before they can be used as pool endpoints.
 
 ```yaml
 providers:
@@ -64,9 +68,10 @@ providers:
 
 ### core_adapter
 
-Starts or connects to a local adapter core such as Clash, Mihomo, or sing-box. The core is
-responsible for VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC, WireGuard, and similar node
-protocols. ProxyPool Architect only consumes the local HTTP/SOCKS inbound exposed by that core.
+Starts or connects to a local adapter core such as Clash, FlClash, Mihomo, Xray/V2Ray, or
+sing-box. The core is responsible for VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC,
+WireGuard, and similar node protocols. ProxyPool Architect only consumes the local HTTP/SOCKS
+inbound exposed by that core.
 
 ```yaml
 providers:
@@ -85,8 +90,9 @@ providers:
 ```
 
 If `local_scheme` and `local_port` are omitted, the provider tries to infer the inbound from the
-core config using `mixed-port`, `socks-port`, then `port`. Readiness checks are limited to local
-URLs such as `127.0.0.1` or `localhost`.
+core config using Clash-style `mixed-port`, `socks-port`, and `port`, then falls back to
+`inbounds` entries from Xray/V2Ray or sing-box style configs. Readiness checks are limited to
+local URLs such as `127.0.0.1` or `localhost`.
 
 If the core is managed outside this application, omit `command` and configure only the local
 inbound:
@@ -101,6 +107,37 @@ providers:
       local_host: "127.0.0.1"
       local_port: 7891
 ```
+
+## Dashboard URL Import
+
+The React dashboard Providers page can submit an on-demand source URL to:
+
+```text
+POST /providers/import-url
+```
+
+Request body:
+
+```json
+{
+  "url": "https://example.com/http.txt",
+  "file_type": "http"
+}
+```
+
+Supported `file_type` values:
+
+- `auto`: auto-detect plain text, Clash/FlClash YAML, and V2Ray/Xray subscription payloads
+- `http`: bare `host:port` entries are normalized to `http://host:port`
+- `socks5`: bare `host:port` entries are normalized to `socks5://host:port`
+- `all`: mixed lists can include `http://`, `https://`, `socks4://`, or `socks5://` entries
+- `clash`: force Clash/FlClash YAML parsing first, then fall back to direct text parsing
+- `v2ray`: force V2Ray/Xray URI parsing, including base64-encoded subscription payloads
+
+The endpoint stores unique direct proxies into the `raw` pool and returns detected format,
+protocol list, direct-supported count, adapter-required count, unsupported count, duplicate
+count, and invalid count. Only `http` and `https` source URLs are accepted. Literal private or
+local source hosts are blocked when `SAFE_BLOCK_PRIVATE_NETWORKS=true`.
 
 ## Custom Providers
 

@@ -41,24 +41,21 @@ class ProxyService:
         limit: int,
         offset: int,
     ) -> tuple[list[ProxyEndpoint], int]:
-        if pool is None:
-            proxies = await self._store.list_all_proxies()
-        else:
-            counts = await self._store.count_by_pool()
-            proxies = await self._store.list_proxies(pool, limit=counts.get(pool, 0), offset=0)
-        filtered = [proxy for proxy in proxies if self._matches_filters(proxy, filters)]
-        filtered.sort(key=lambda item: (-item.score, item.id))
-        total = len(filtered)
-        return filtered[offset : offset + limit], total
+        return await self._store.list_filtered_proxies(
+            pool=pool,
+            filters=filters,
+            limit=limit,
+            offset=offset,
+        )
 
     async def get_proxy_detail(self, proxy_id: str) -> ProxyEndpoint | None:
         return await self._store.get_proxy(proxy_id)
 
     async def report_result(self, report: ReportProxyRequest) -> ProxyEndpoint | None:
-        proxy = await self._store.get_proxy(report.proxy_id)
-        pool = await self._store.find_proxy_pool(report.proxy_id)
-        if proxy is None or pool is None:
+        record = await self._store.get_proxy_record(report.proxy_id)
+        if record is None:
             return None
+        pool, proxy = record
 
         now = utc_now_iso()
         if report.ok:

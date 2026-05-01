@@ -3,11 +3,15 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
+import { PaginationControls } from "../components/common/PaginationControls";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { ValidationJobTable } from "../components/validation/ValidationJobTable";
 import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
-import type { EventLogEntry, OverviewData, ValidationJob } from "../types";
+import type { EventLogEntry, OverviewData, PaginatedResponse, ValidationJob } from "../types";
+
+const JOB_PAGE_SIZE = 10;
+const EVENT_SAMPLE_SIZE = 50;
 
 function countErrorTypes(events: EventLogEntry[]) {
   const counts = new Map<string, number>();
@@ -23,12 +27,13 @@ function countErrorTypes(events: EventLogEntry[]) {
 }
 
 export function ValidationPage() {
-  const { t, formatNumber, formatPercent } = useI18n();
-  const [jobs, setJobs] = useState<ValidationJob[]>([]);
+  const { t, language, formatNumber, formatPercent } = useI18n();
+  const [jobs, setJobs] = useState<PaginatedResponse<ValidationJob> | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [events, setEvents] = useState<EventLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,14 +44,18 @@ export function ValidationPage() {
 
       try {
         const [validationJobs, nextOverview, nextEvents] = await Promise.all([
-          dashboardApi.listValidationJobs(),
+          dashboardApi.listValidationJobs(JOB_PAGE_SIZE, (page - 1) * JOB_PAGE_SIZE),
           dashboardApi.getOverview(),
-          dashboardApi.listEvents()
+          dashboardApi.listEvents(EVENT_SAMPLE_SIZE, 0)
         ]);
         if (!cancelled) {
+          if (validationJobs.items.length === 0 && validationJobs.total > 0 && page > 1) {
+            setPage((current) => Math.max(1, current - 1));
+            return;
+          }
           setJobs(validationJobs);
           setOverview(nextOverview);
-          setEvents(nextEvents);
+          setEvents(nextEvents.items);
         }
       } catch (err) {
         if (!cancelled) {
@@ -64,7 +73,7 @@ export function ValidationPage() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [language, page]);
 
   if (loading) {
     return <LoadingState label={t("validation.loading")} />;
@@ -74,14 +83,15 @@ export function ValidationPage() {
     return <ErrorState message={error} />;
   }
 
-  if (jobs.length === 0 || !overview) {
+  if (!jobs || jobs.items.length === 0 || !overview) {
     return <EmptyState title={t("validation.emptyTitle")} message={t("validation.emptyMessage")} />;
   }
 
-  const totalChecked = jobs.reduce((sum, item) => sum + item.checked_count, 0);
-  const totalSuccess = jobs.reduce((sum, item) => sum + item.success_count, 0);
-  const totalTimeout = jobs.reduce((sum, item) => sum + item.timeout_count, 0);
+  const totalChecked = jobs.items.reduce((sum, item) => sum + item.checked_count, 0);
+  const totalSuccess = jobs.items.reduce((sum, item) => sum + item.success_count, 0);
+  const totalTimeout = jobs.items.reduce((sum, item) => sum + item.timeout_count, 0);
   const errorTypes = countErrorTypes(events);
+  const totalPages = Math.max(1, Math.ceil(jobs.total / JOB_PAGE_SIZE));
 
   return (
     <div className="section-page">
@@ -125,10 +135,24 @@ export function ValidationPage() {
         <div className="panel-header">
           <div>
             <h2>{t("validation.recentJobs")}</h2>
-            <p>{t("validation.jobsDescription")}</p>
+            <p>
+              {t("common.listRange", {
+                start: formatNumber(jobs.offset + 1),
+                end: formatNumber(jobs.offset + jobs.items.length),
+                total: formatNumber(jobs.total)
+              })}
+            </p>
           </div>
+          <PaginationControls
+            ariaLabel={t("validation.paginationLabel")}
+            page={page}
+            totalPages={totalPages}
+            disabled={loading}
+            onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+            onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+          />
         </div>
-        <ValidationJobTable items={jobs} />
+        <ValidationJobTable items={jobs.items} />
       </section>
 
       <section className="panel">

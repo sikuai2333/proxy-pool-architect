@@ -1,3 +1,4 @@
+import asyncio
 from time import perf_counter
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -34,6 +35,7 @@ class SchedulerService:
         self._runtime_activity = runtime_activity or RuntimeActivityService()
         self._scheduler = AsyncIOScheduler(timezone="UTC")
         self._registered = False
+        self._validate_lock = asyncio.Lock()
 
     @property
     def job_ids(self) -> list[str]:
@@ -69,6 +71,10 @@ class SchedulerService:
             return
         self._upsert_jobs()
         self._registered = True
+
+    async def run_validate_once(self, limit: int | None = None) -> ValidationJob:
+        async with self._validate_lock:
+            return await self._execute_validate_job(limit=limit)
 
     def _upsert_jobs(self) -> None:
         self._scheduler.add_job(
@@ -132,6 +138,12 @@ class SchedulerService:
         )
 
     async def _run_validate_job(self) -> None:
+        await self.run_validate_once()
+
+    async def _execute_validate_job(
+        self,
+        limit: int | None = None,
+    ) -> ValidationJob:
         started_at = perf_counter()
         job_started_at = utc_now_iso()
         self._runtime_activity.record_event(
@@ -159,26 +171,25 @@ class SchedulerService:
                 cooldown_seconds=self._settings.cooldown_seconds,
             )
             released = await CooldownService(self._store).release_expired(
-                limit=self._settings.validate_batch_size,
+                limit=limit or self._settings.validate_batch_size,
             )
             outcomes = await service.validate_pool(
                 pool="raw",
-                limit=self._settings.validate_batch_size,
+                limit=limit or self._settings.validate_batch_size,
             )
         except Exception as exc:
             finished_at = utc_now_iso()
-            self._runtime_activity.record_validation_job(
-                ValidationJob(
-                    id=f"job-{round(started_at * 1000)}",
-                    started_at=job_started_at,
-                    finished_at=finished_at,
-                    checked_count=0,
-                    success_count=0,
-                    fail_count=0,
-                    timeout_count=0,
-                    status="failed",
-                )
+            failed_job = ValidationJob(
+                id=f"job-{round(started_at * 1000)}",
+                started_at=job_started_at,
+                finished_at=finished_at,
+                checked_count=0,
+                success_count=0,
+                fail_count=0,
+                timeout_count=0,
+                status="failed",
             )
+            self._runtime_activity.record_validation_job(failed_job)
             self._runtime_activity.record_event(
                 "validation_failed",
                 "warning",
@@ -186,7 +197,7 @@ class SchedulerService:
                 created_at=finished_at,
             )
             logger.warning("Validate job failed: {}", exc.__class__.__name__)
-            return
+            return failed_job
 
         success_count = sum(
             1
@@ -205,18 +216,17 @@ class SchedulerService:
             )
         )
         finished_at = utc_now_iso()
-        self._runtime_activity.record_validation_job(
-            ValidationJob(
-                id=f"job-{round(started_at * 1000)}",
-                started_at=job_started_at,
-                finished_at=finished_at,
-                checked_count=len(outcomes),
-                success_count=success_count,
-                fail_count=fail_count,
-                timeout_count=timeout_count,
-                status="finished",
-            )
+        finished_job = ValidationJob(
+            id=f"job-{round(started_at * 1000)}",
+            started_at=job_started_at,
+            finished_at=finished_at,
+            checked_count=len(outcomes),
+            success_count=success_count,
+            fail_count=fail_count,
+            timeout_count=timeout_count,
+            status="finished",
         )
+        self._runtime_activity.record_validation_job(finished_job)
         self._runtime_activity.record_event(
             "validation_finished",
             "info",
@@ -229,6 +239,7 @@ class SchedulerService:
             len(outcomes),
             self._elapsed_ms(started_at),
         )
+        return finished_job
 
     @staticmethod
     def _elapsed_ms(started_at: float) -> int:

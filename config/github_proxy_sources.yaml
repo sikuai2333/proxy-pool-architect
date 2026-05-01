@@ -1,0 +1,42 @@
+sources:
+  - name: proxifly-http
+    repo: https://github.com/proxifly/free-proxy-list
+    repo_last_commit_utc: "2026-05-01T08:01:18Z"
+    file_type: all
+    url: https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/http/data.txt
+    notes: Full http:// URLs. Repository README says the list is updated every 5 minutes.
+
+  - name: proxifly-socks5
+    repo: https://github.com/proxifly/free-proxy-list
+    repo_last_commit_utc: "2026-05-01T08:01:18Z"
+    file_type: all
+    url: https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/socks5/data.txt
+    notes: Full socks5:// URLs. Repository README says the list is updated every 5 minutes.
+
+  - name: thespeedx-http
+    repo: https://github.com/TheSpeedX/PROXY-List
+    repo_last_commit_utc: "2026-05-01T06:11:09Z"
+    file_type: http
+    url: https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
+    notes: Bare host:port HTTP list. Repository README includes an explicit Last Updated timestamp.
+
+  - name: thespeedx-socks5
+    repo: https://github.com/TheSpeedX/PROXY-List
+    repo_last_commit_utc: "2026-05-01T06:11:09Z"
+    file_type: socks5
+    url: https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
+    notes: Bare host:port SOCKS5 list. Repository README includes an explicit Last Updated timestamp.
+
+  - name: iplocate-http
+    repo: https://github.com/iplocate/free-proxy-list
+    repo_last_commit_utc: "2026-05-01T08:27:31Z"
+    file_type: http
+    url: https://raw.githubusercontent.com/iplocate/free-proxy-list/main/protocols/http.txt
+    notes: Bare host:port HTTP list. Repository README says the list is updated every 30 minutes.
+
+  - name: iplocate-socks5
+    repo: https://github.com/iplocate/free-proxy-list
+    repo_last_commit_utc: "2026-05-01T08:27:31Z"
+    file_type: socks5
+    url: https://raw.githubusercontent.com/iplocate/free-proxy-list/main/protocols/socks5.txt
+    notes: Bare host:port SOCKS5 list. Repository README says the list is updated every 30 minutes.

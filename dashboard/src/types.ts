@@ -72,6 +72,13 @@ export interface ProxyListResponse {
   offset: number;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ProxyFilterOptions {
   countries: string[];
   sources: string[];
@@ -95,7 +102,17 @@ export interface GeoAsnSummary {
   avg_latency_ms: number | null;
 }
 
+export interface GeoCoverageSummary {
+  total_proxies: number;
+  geo_tagged_proxies: number;
+  unresolved_proxies: number;
+  geo_enabled: boolean;
+  geo_file: string;
+  geo_file_exists: boolean;
+}
+
 export interface GeoSummary {
+  coverage: GeoCoverageSummary;
   countries: GeoCountrySummary[];
   asns: GeoAsnSummary[];
 }
@@ -107,6 +124,30 @@ export interface ProviderSummary {
   fetched_count: number;
   valid_count: number;
   last_error?: string | null;
+}
+
+export type ProxyUrlImportFileType = "auto" | "http" | "socks5" | "all" | "clash" | "v2ray";
+export type ProxyUrlImportDetectedFormat =
+  | "plain_text"
+  | "clash_yaml"
+  | "v2ray_uri_list"
+  | "base64_uri_list";
+export type ProxyUrlImportConnectionMode = "direct" | "core_adapter";
+
+export interface ProxyUrlImportResult {
+  source: string;
+  file_type: ProxyUrlImportFileType;
+  detected_format: ProxyUrlImportDetectedFormat;
+  fetched_count: number;
+  valid_count: number;
+  stored_count: number;
+  duplicate_count: number;
+  invalid_count: number;
+  direct_supported_count: number;
+  adapter_required_count: number;
+  unsupported_count: number;
+  detected_protocols: string[];
+  supported_connection_modes: ProxyUrlImportConnectionMode[];
 }
 
 export interface ValidationJob {
@@ -142,6 +183,14 @@ export interface DashboardSettings {
   min_elite_score: number;
   cooldown_seconds: number;
   safe_networking: SafeNetworkingSettings;
+}
+
+export interface AuthSessionStatus {
+  enabled: boolean;
+  authenticated: boolean;
+  username?: string | null;
+  expires_at?: string | null;
+  auth_method?: "session" | "basic" | "disabled" | null;
 }
 
 export type DashboardRoute =

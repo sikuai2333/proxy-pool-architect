@@ -48,7 +48,7 @@ export function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [language]);
 
   if (loading) {
     return <LoadingState label={t("settings.loading")} />;

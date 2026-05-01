@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 
 from app.core.config import Settings
 from app.core.scheduler import SchedulerService
@@ -7,15 +8,20 @@ from app.models.dashboard import (
     EventLogEntry,
     GeoAsnSummary,
     GeoCountrySummary,
+    GeoCoverageSummary,
     GeoSummaryResponse,
     ProviderSummary,
     SafeNetworkingSettings,
     ValidationJob,
 )
+from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
+from app.models.url_import import ProxyListFileType, ProxyUrlImportResponse
 from app.providers.manager import ProviderManager
 from app.services.runtime_activity_service import RuntimeActivityService
+from app.services.url_import_service import ProxyUrlImportError, ProxyUrlImportService
 from app.storage.redis_store import RedisStore
+from app.utils.time import utc_now_iso
 
 
 class DashboardApiService:
@@ -35,14 +41,25 @@ class DashboardApiService:
         proxies = await self._store.list_all_proxies()
         countries: defaultdict[str, list[ProxyEndpoint]] = defaultdict(list)
         asns: defaultdict[str, list[ProxyEndpoint]] = defaultdict(list)
+        geo_tagged = 0
 
         for proxy in proxies:
             if proxy.country:
                 countries[proxy.country].append(proxy)
             if proxy.asn:
                 asns[proxy.asn].append(proxy)
+            if proxy.country or proxy.asn:
+                geo_tagged += 1
 
         return GeoSummaryResponse(
+            coverage=GeoCoverageSummary(
+                total_proxies=len(proxies),
+                geo_tagged_proxies=geo_tagged,
+                unresolved_proxies=max(len(proxies) - geo_tagged, 0),
+                geo_enabled=self._settings.geo_enabled,
+                geo_file=self._settings.geo_file,
+                geo_file_exists=Path(self._settings.geo_file).exists(),
+            ),
             countries=[
                 GeoCountrySummary(
                     country=country,
@@ -90,12 +107,15 @@ class DashboardApiService:
             base = configured.get(name) or runtime.get(name)
             enabled = base.enabled if base is not None else fetched_counts.get(name, 0) > 0
             runtime_summary = runtime.get(name)
+            fetched_count = fetched_counts.get(name, 0)
+            if runtime_summary is not None and runtime_summary.fetched_count > fetched_count:
+                fetched_count = runtime_summary.fetched_count
             summaries.append(
                 ProviderSummary(
                     name=name,
                     enabled=enabled,
                     last_fetch_at=runtime_summary.last_fetch_at if runtime_summary else None,
-                    fetched_count=fetched_counts.get(name, 0),
+                    fetched_count=fetched_count,
                     valid_count=valid_counts.get(name, 0),
                     last_error=runtime_summary.last_error if runtime_summary else None,
                 )
@@ -109,11 +129,62 @@ class DashboardApiService:
                 return summary
         return None
 
-    def list_validation_jobs(self) -> list[ValidationJob]:
-        return self._runtime_activity.list_validation_jobs()
+    async def import_proxies_from_url(
+        self,
+        *,
+        url: str,
+        file_type: ProxyListFileType,
+    ) -> ProxyUrlImportResponse:
+        try:
+            result = await ProxyUrlImportService(
+                store=self._store,
+                settings=self._settings,
+            ).import_from_url(url=url, file_type=file_type)
+        except ProxyUrlImportError as exc:
+            self._runtime_activity.record_event(
+                "provider_url_import_failed",
+                "warning",
+                f"Submitted provider URL import failed: {exc}",
+            )
+            raise
+        self._runtime_activity.record_provider_fetch_results(
+            [
+                ProviderFetchResult(
+                    name=result.source,
+                    enabled=True,
+                    fetched_count=result.valid_count,
+                )
+            ],
+            fetched_at=utc_now_iso(),
+        )
+        self._runtime_activity.record_event(
+            "provider_url_imported",
+            "info",
+            (
+                f"Imported {result.stored_count} direct proxies from {result.source} "
+                f"({result.direct_supported_count} direct, "
+                f"{result.adapter_required_count} adapter-required, "
+                f"{result.invalid_count} invalid)."
+            ),
+        )
+        return result
 
-    def list_events(self) -> list[EventLogEntry]:
-        return self._runtime_activity.list_events()
+    def list_validation_jobs(
+        self,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[ValidationJob], int]:
+        return self._runtime_activity.list_validation_jobs(limit=limit, offset=offset)
+
+    async def run_validation(self, limit: int | None = None) -> ValidationJob:
+        return await self._scheduler.run_validate_once(limit=limit)
+
+    def list_events(
+        self,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[EventLogEntry], int]:
+        return self._runtime_activity.list_events(limit=limit, offset=offset)
 
     def get_settings(self) -> DashboardSettings:
         return DashboardSettings(

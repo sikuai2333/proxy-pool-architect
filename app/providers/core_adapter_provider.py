@@ -151,19 +151,10 @@ class CoreAdapterProvider(ProxyProvider):
         if not isinstance(payload, dict):
             return None
 
-        mixed_port = _int_or_none(payload.get("mixed-port"))
-        if mixed_port is not None:
-            return "http", self._local_host, mixed_port
-
-        socks_port = _int_or_none(payload.get("socks-port"))
-        if socks_port is not None:
-            return "socks5", self._local_host, socks_port
-
-        http_port = _int_or_none(payload.get("port"))
-        if http_port is not None:
-            return "http", self._local_host, http_port
-
-        return None
+        return (
+            _infer_clash_style_endpoint(payload, self._local_host)
+            or _infer_inbound_endpoint(payload, self._local_host)
+        )
 
 
 def _register_cleanup() -> None:
@@ -198,3 +189,58 @@ def _int_or_none(value: object) -> int | None:
         return int(value)
     except ValueError:
         return None
+
+
+def _infer_clash_style_endpoint(
+    payload: dict[object, object],
+    host: str,
+) -> tuple[ProxyScheme, str, int] | None:
+    mixed_port = _int_or_none(payload.get("mixed-port"))
+    if mixed_port is not None:
+        return "http", host, mixed_port
+
+    socks_port = _int_or_none(payload.get("socks-port"))
+    if socks_port is not None:
+        return "socks5", host, socks_port
+
+    http_port = _int_or_none(payload.get("port"))
+    if http_port is not None:
+        return "http", host, http_port
+
+    return None
+
+
+def _infer_inbound_endpoint(
+    payload: dict[object, object],
+    host: str,
+) -> tuple[ProxyScheme, str, int] | None:
+    inbounds = payload.get("inbounds")
+    if not isinstance(inbounds, list):
+        return None
+
+    ranked: list[tuple[int, tuple[ProxyScheme, str, int]]] = []
+    for inbound in inbounds:
+        if not isinstance(inbound, dict):
+            continue
+        protocol = str(inbound.get("protocol") or inbound.get("type") or "").casefold()
+        port = (
+            _int_or_none(inbound.get("port"))
+            or _int_or_none(inbound.get("listen_port"))
+            or _int_or_none(inbound.get("listenPort"))
+        )
+        if port is None:
+            continue
+
+        if protocol in {"mixed"}:
+            ranked.append((0, ("http", host, port)))
+        elif protocol in {"http"}:
+            ranked.append((1, ("http", host, port)))
+        elif protocol in {"socks", "socks5"}:
+            ranked.append((2, ("socks5", host, port)))
+        elif protocol in {"socks4"}:
+            ranked.append((3, ("socks4", host, port)))
+
+    if not ranked:
+        return None
+    ranked.sort(key=lambda item: item[0])
+    return ranked[0][1]

@@ -2,7 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from loguru import logger
 
+from app.api.auth import require_admin_auth
 from app.api.dependencies import get_runtime_activity, get_store
 from app.core.config import get_settings
 from app.models.api import (
@@ -19,7 +21,7 @@ from app.services.runtime_activity_service import RuntimeActivityService
 from app.storage.redis_store import RedisStore
 from app.utils.proxy_url import format_proxy_url
 
-router = APIRouter(tags=["proxy"])
+router = APIRouter(tags=["proxy"], dependencies=[Depends(require_admin_auth)])
 
 
 def get_proxy_service(store: Annotated[RedisStore, Depends(get_store)]) -> ProxyService:
@@ -87,6 +89,15 @@ async def list_proxies(
         limit=limit,
         offset=offset,
     )
+    logger.debug(
+        "Listed proxies pool={} total={} returned={} limit={} offset={} filtered={}",
+        pool or "all",
+        total,
+        len(proxies),
+        limit,
+        offset,
+        bool(scheme or anonymity or country or source or q or min_score is not None),
+    )
     responses = [ProxyResponse.from_endpoint(proxy) for proxy in proxies]
     return ProxyListResponse(
         items=responses,
@@ -117,12 +128,28 @@ async def report_proxy_result(
 ) -> ReportProxyResponse:
     proxy = await service.report_result(report)
     if proxy is None:
+        logger.info("Proxy report missed proxy_id={} ok={}", report.proxy_id, report.ok)
         raise HTTPException(status_code=404, detail="proxy not found")
     if not report.ok:
         runtime_activity.record_event(
             "proxy_reported_failure",
             "warning",
             f"Proxy {proxy.id} was reported as failed.",
+        )
+        logger.info(
+            "Proxy report recorded proxy_id={} ok={} status={} score={}",
+            proxy.id,
+            report.ok,
+            proxy.status,
+            proxy.score,
+        )
+    else:
+        logger.debug(
+            "Proxy report recorded proxy_id={} ok={} status={} score={}",
+            proxy.id,
+            report.ok,
+            proxy.status,
+            proxy.score,
         )
     return ReportProxyResponse(
         proxy_id=proxy.id,
@@ -141,10 +168,12 @@ async def delete_proxy(
 ) -> DeleteProxyResponse:
     deleted = await service.delete_proxy(proxy_id)
     if not deleted:
+        logger.info("Proxy delete missed proxy_id={}", proxy_id)
         raise HTTPException(status_code=404, detail="proxy not found")
     runtime_activity.record_event(
         "proxy_deleted",
         "info",
         f"Proxy {proxy_id} was deleted from the pool.",
     )
+    logger.info("Proxy deleted proxy_id={}", proxy_id)
     return DeleteProxyResponse(proxy_id=proxy_id, deleted=True, ok=True)

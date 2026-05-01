@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from app.api.auth import require_admin_auth
 from app.api.dependencies import get_runtime_activity, get_scheduler, get_store
 from app.core.config import get_settings
 from app.core.scheduler import SchedulerService
@@ -10,7 +11,7 @@ from app.services.runtime_activity_service import RuntimeActivityService
 from app.services.stats_service import StatsService
 from app.storage.redis_store import RedisStore
 
-router = APIRouter(tags=["stats"])
+router = APIRouter(tags=["stats"], dependencies=[Depends(require_admin_auth)])
 
 
 def get_stats_service(store: Annotated[RedisStore, Depends(get_store)]) -> StatsService:

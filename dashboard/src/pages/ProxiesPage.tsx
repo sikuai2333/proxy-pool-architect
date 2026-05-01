@@ -51,7 +51,7 @@ function buildListMessage(
 }
 
 export function ProxiesPage() {
-  const { t, formatNumber } = useI18n();
+  const { t, language, formatNumber } = useI18n();
   const [filters, setFilters] = useState<ProxyFilterState>(defaultFilters);
   const [options, setOptions] = useState<ProxyFilterOptions>(emptyOptions);
   const [page, setPage] = useState(1);
@@ -85,7 +85,7 @@ export function ProxiesPage() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +131,7 @@ export function ProxiesPage() {
     return () => {
       cancelled = true;
     };
-  }, [filters, page, t]);
+  }, [filters, language, page]);
 
   async function openProxyDetails(proxy: ProxyEndpoint) {
     setDrawerOpen(true);

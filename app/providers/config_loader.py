@@ -55,7 +55,14 @@ def _build_provider(spec: ProviderSpec, settings: Settings) -> ProxyProvider:
             ),
             concurrency=int(options.get("concurrency", settings.provider_url_concurrency)),
         )
-    if provider_type in {"clash", "clash_subscription", "flclash"}:
+    if provider_type in {
+        "clash",
+        "clash_subscription",
+        "flclash",
+        "v2ray_subscription",
+        "xray_subscription",
+        "universal_subscription",
+    }:
         return ClashSubscriptionProvider(
             urls=_string_list(options.get("urls")),
             files=_string_list(options.get("files")),
@@ -71,7 +78,17 @@ def _build_provider(spec: ProviderSpec, settings: Settings) -> ProxyProvider:
             socks_port=int(options.get("socks_port", 9050)),
             enabled=spec.enabled,
         )
-    if provider_type in {"core_adapter", "core", "mihomo", "clash_core", "sing_box"}:
+    if provider_type in {
+        "core_adapter",
+        "core",
+        "mihomo",
+        "clash_core",
+        "sing_box",
+        "sing-box",
+        "flclash_core",
+        "v2ray",
+        "xray",
+    }:
         return CoreAdapterProvider(
             core_name=str(options.get("core_name", provider_type)),
             enabled=spec.enabled,

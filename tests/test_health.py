@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.main import create_app
 
 
@@ -25,3 +26,17 @@ def test_health_endpoint_allows_dashboard_dev_origin() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_health_endpoint_rejects_untrusted_host_when_configured() -> None:
+    settings = get_settings()
+    original = settings.model_copy(deep=True)
+    settings.allowed_hosts = ["example.com", "localhost", "testserver"]
+    try:
+        client = TestClient(create_app())
+        response = client.get("/health", headers={"Host": "evil.example"})
+
+        assert response.status_code == 400
+    finally:
+        for field, value in original.model_dump().items():
+            setattr(settings, field, value)

@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 
+import { ErrorState } from "./components/common/ErrorState";
+import { LoadingState } from "./components/common/LoadingState";
 import { AppShell } from "./components/layout/AppShell";
 import { useI18n } from "./i18n";
-import { dashboardDataMode } from "./lib/api-client";
+import { dashboardApi, dashboardDataMode } from "./lib/api-client";
 import { routeTitleKeys, toRoute } from "./navigation";
 import { GeoPage } from "./pages/GeoPage";
+import { LoginPage } from "./pages/LoginPage";
 import { LogsPage } from "./pages/LogsPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
@@ -12,7 +15,7 @@ import { ProxiesPage } from "./pages/ProxiesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
-import type { DashboardRoute } from "./types";
+import type { AuthSessionStatus, DashboardRoute } from "./types";
 
 type ThemeMode = "dark" | "light";
 
@@ -88,6 +91,55 @@ export function App() {
   const modeLabel = dashboardDataMode === "live" ? t("mode.live") : t("mode.mock");
   const { theme, toggleTheme } = useThemeMode();
   const activeTitle = t(routeTitleKeys[activeRoute]);
+  const [authStatus, setAuthStatus] = useState<AuthSessionStatus | null>(
+    dashboardDataMode === "live"
+      ? null
+      : { enabled: false, authenticated: false, auth_method: "disabled" }
+  );
+  const [authLoading, setAuthLoading] = useState(dashboardDataMode === "live");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  async function loadAuthStatus() {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const next = await dashboardApi.getAuthSession();
+      setAuthStatus(next);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : t("auth.sessionError"));
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (dashboardDataMode !== "live") {
+      return;
+    }
+
+    void loadAuthStatus();
+  }, []);
+
+  async function handleLogout() {
+    try {
+      const next = await dashboardApi.logout();
+      setAuthStatus(next);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : t("auth.logoutError"));
+    }
+  }
+
+  if (dashboardDataMode === "live" && authLoading) {
+    return <LoadingState label={t("auth.loading")} />;
+  }
+
+  if (dashboardDataMode === "live" && authError) {
+    return <ErrorState title={t("auth.sessionFailed")} message={authError} />;
+  }
+
+  if (dashboardDataMode === "live" && authStatus?.enabled && !authStatus.authenticated) {
+    return <LoginPage onLoggedIn={loadAuthStatus} />;
+  }
 
   return (
     <AppShell
@@ -95,6 +147,9 @@ export function App() {
       modeLabel={modeLabel}
       themeLabel={theme === "dark" ? t("theme.light") : t("theme.dark")}
       onToggleTheme={toggleTheme}
+      userLabel={authStatus?.authenticated ? authStatus.username ?? t("auth.adminUser") : null}
+      logoutLabel={authStatus?.enabled ? t("auth.logout") : null}
+      onLogout={authStatus?.enabled ? () => void handleLogout() : undefined}
     >
       {renderRoute(activeRoute, activeTitle)}
     </AppShell>

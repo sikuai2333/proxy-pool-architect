@@ -23,6 +23,21 @@ describe("dashboard API client", () => {
     expect(overview.health.scheduler).toBe("running");
   });
 
+  it("returns mock auth state and supports mock login/logout", async () => {
+    const client = createDashboardApiClient({ mode: "mock", mockDelayMs: 0 });
+
+    const initial = await client.getAuthSession();
+    expect(initial.enabled).toBe(false);
+    expect(initial.authenticated).toBe(false);
+
+    const loggedIn = await client.login("admin", "test-password-2333");
+    expect(loggedIn.authenticated).toBe(true);
+    expect(loggedIn.username).toBe("admin");
+
+    const loggedOut = await client.logout();
+    expect(loggedOut.authenticated).toBe(false);
+  });
+
   it("raises API errors when live overview requests fail", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: "Service unavailable" }), {
@@ -80,6 +95,18 @@ describe("dashboard API client", () => {
     expect(result.ok).toBe(true);
     expect(afterDelete.items.find((item) => item.id === target.id)).toBeUndefined();
     expect(afterDelete.total).toBe(page.total - 1);
+  });
+
+  it("imports proxy URLs in mock mode and exposes the imported source", async () => {
+    const client = createDashboardApiClient({ mode: "mock", mockDelayMs: 0 });
+
+    const result = await client.importProxyUrl("https://example.com/http.txt", "http");
+    const providers = await client.listProviders();
+
+    expect(result.source).toBe("url_submit:http:example.com");
+    expect(result.detected_format).toBe("plain_text");
+    expect(result.stored_count).toBeGreaterThan(0);
+    expect(providers.some((provider) => provider.name === result.source)).toBe(true);
   });
 
   it("maps live overview responses into dashboard overview data", async () => {
@@ -233,6 +260,138 @@ describe("dashboard API client", () => {
     expect(proxy.source).toBe("core_adapter:mihomo");
   });
 
+  it("posts submitted proxy URLs to the live import endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          source: "url_submit:http:example.com",
+          file_type: "http",
+          detected_format: "plain_text",
+          fetched_count: 2,
+          valid_count: 2,
+          stored_count: 1,
+          duplicate_count: 1,
+          invalid_count: 0,
+          direct_supported_count: 2,
+          adapter_required_count: 0,
+          unsupported_count: 0,
+          detected_protocols: ["http"],
+          supported_connection_modes: ["direct"]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 1000
+    });
+
+    const result = await client.importProxyUrl("https://example.com/http.txt", "http");
+
+    expect(result.stored_count).toBe(1);
+    expect(result.detected_protocols).toEqual(["http"]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/providers/import-url",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+        body: JSON.stringify({
+          url: "https://example.com/http.txt",
+          file_type: "http"
+        })
+      })
+    );
+  });
+
+  it("calls live auth endpoints with cookie credentials", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            enabled: true,
+            authenticated: false,
+            username: null,
+            expires_at: null,
+            auth_method: null
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            enabled: true,
+            authenticated: true,
+            username: "sikuai",
+            expires_at: "2026-05-01T12:00:00+08:00",
+            auth_method: "session"
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            enabled: true,
+            authenticated: false,
+            username: null,
+            expires_at: null,
+            auth_method: null
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 1000
+    });
+
+    const session = await client.getAuthSession();
+    expect(session.authenticated).toBe(false);
+
+    const login = await client.login("admin", "test-password-2333");
+    expect(login.authenticated).toBe(true);
+    expect(login.username).toBe("admin");
+
+    const logout = await client.logout();
+    expect(logout.authenticated).toBe(false);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8000/auth/session",
+      expect.objectContaining({
+        credentials: "include"
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8000/auth/login",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+        body: JSON.stringify({
+          username: "admin",
+          password: "test-password-2333"
+        })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "http://localhost:8000/auth/logout",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST"
+      })
+    );
+  });
+
   it("derives geo summary from live proxy snapshots when /geo/summary is missing", async () => {
     const snapshotPayload = {
       proxies: [
@@ -285,6 +444,8 @@ describe("dashboard API client", () => {
 
     const summary = await client.getGeoSummary();
 
+    expect(summary.coverage.total_proxies).toBe(1);
+    expect(summary.coverage.geo_tagged_proxies).toBe(1);
     expect(summary.countries[0].country).toBe("SG");
     expect(summary.countries[0].elite).toBe(1);
   });
@@ -293,6 +454,14 @@ describe("dashboard API client", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
+          coverage: {
+            total_proxies: 4,
+            geo_tagged_proxies: 4,
+            unresolved_proxies: 0,
+            geo_enabled: true,
+            geo_file: "config/geo.csv",
+            geo_file_exists: true
+          },
           countries: [{ country: "US", total: 4, elite: 2, avg_latency_ms: 610 }],
           asns: [{ asn: "AS20473", total: 3, elite: 1, avg_latency_ms: 560 }]
         }),
@@ -309,6 +478,7 @@ describe("dashboard API client", () => {
 
     const summary = await client.getGeoSummary();
 
+    expect(summary.coverage.geo_enabled).toBe(true);
     expect(summary.countries[0]).toMatchObject({
       country: "US",
       total: 4,
@@ -325,6 +495,34 @@ describe("dashboard API client", () => {
         headers: expect.objectContaining({ Accept: "application/json" })
       })
     );
+  });
+
+  it("normalizes legacy live geo summary responses without coverage", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          countries: [{ country: "JP", total: 2, elite: 1, avg_latency_ms: 720 }],
+          asns: []
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 1000
+    });
+
+    const summary = await client.getGeoSummary();
+
+    expect(summary.coverage).toMatchObject({
+      total_proxies: 2,
+      geo_tagged_proxies: 2,
+      unresolved_proxies: 0
+    });
+    expect(summary.countries[0].country).toBe("JP");
   });
 
   it("derives provider summaries from live proxy snapshots when /providers is missing", async () => {
@@ -398,10 +596,84 @@ describe("dashboard API client", () => {
       timeoutMs: 1000
     });
 
-    const jobs = await client.listValidationJobs();
+    const jobs = await client.listValidationJobs(10, 0);
 
-    expect(jobs.length).toBeGreaterThan(0);
-    expect(jobs[0].checked_count).toBeGreaterThan(0);
+    expect(jobs.items.length).toBeGreaterThan(0);
+    expect(jobs.items[0].checked_count).toBeGreaterThan(0);
+  });
+
+  it("maps paginated live validation jobs and events", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "job-001",
+                started_at: "2026-05-01T00:00:00+08:00",
+                finished_at: "2026-05-01T00:01:00+08:00",
+                checked_count: 10,
+                success_count: 5,
+                fail_count: 5,
+                timeout_count: 1,
+                status: "finished"
+              }
+            ],
+            total: 3,
+            limit: 1,
+            offset: 1
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "event-001",
+                type: "validation_timeout",
+                level: "warning",
+                message: "timeout",
+                created_at: "2026-05-01T00:02:00+08:00"
+              }
+            ],
+            total: 6,
+            limit: 1,
+            offset: 2
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 1000
+    });
+
+    const jobs = await client.listValidationJobs(1, 1);
+    const events = await client.listEvents(1, 2);
+
+    expect(jobs.total).toBe(3);
+    expect(jobs.items[0].id).toBe("job-001");
+    expect(events.total).toBe(6);
+    expect(events.items[0].id).toBe("event-001");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8000/validation/jobs?limit=1&offset=1",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "application/json" })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8000/events?limit=1&offset=2",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "application/json" })
+      })
+    );
   });
 
   it("falls back to mock settings when the live settings endpoint is missing", async () => {
@@ -423,5 +695,21 @@ describe("dashboard API client", () => {
 
     expect(settings.validate_concurrency).toBeGreaterThan(0);
     expect(settings.safe_networking.mask_proxy_credentials).toBe(true);
+  });
+
+  it("times out hanging live requests instead of waiting forever", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => new Promise(() => undefined));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 25
+    });
+
+    await expect(client.getOverview()).rejects.toMatchObject({
+      name: "DashboardApiError",
+      message: "Request timed out after 25ms"
+    });
   });
 });

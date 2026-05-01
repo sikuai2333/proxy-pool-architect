@@ -1,5 +1,6 @@
 import type {
   GeoAsnSummary,
+  GeoCoverageSummary,
   GeoCountrySummary,
   GeoSummary,
   ProviderSummary,
@@ -19,18 +20,24 @@ function averageLatency(values: Array<number | null | undefined>) {
 export function deriveGeoSummary(items: ProxyEndpoint[]): GeoSummary {
   const countryBuckets = new Map<string, ProxyEndpoint[]>();
   const asnBuckets = new Map<string, ProxyEndpoint[]>();
+  let geoTaggedProxies = 0;
 
   items.forEach((item) => {
-    const country = item.country || "Unknown";
-    const asn = item.asn || "Unknown";
+    if (item.country || item.asn) {
+      geoTaggedProxies += 1;
+    }
 
-    const countryItems = countryBuckets.get(country) ?? [];
-    countryItems.push(item);
-    countryBuckets.set(country, countryItems);
+    if (item.country) {
+      const countryItems = countryBuckets.get(item.country) ?? [];
+      countryItems.push(item);
+      countryBuckets.set(item.country, countryItems);
+    }
 
-    const asnItems = asnBuckets.get(asn) ?? [];
-    asnItems.push(item);
-    asnBuckets.set(asn, asnItems);
+    if (item.asn) {
+      const asnItems = asnBuckets.get(item.asn) ?? [];
+      asnItems.push(item);
+      asnBuckets.set(item.asn, asnItems);
+    }
   });
 
   const countries: GeoCountrySummary[] = [...countryBuckets.entries()]
@@ -51,7 +58,16 @@ export function deriveGeoSummary(items: ProxyEndpoint[]): GeoSummary {
     }))
     .sort((left, right) => right.total - left.total);
 
-  return { countries, asns };
+  const coverage: GeoCoverageSummary = {
+    total_proxies: items.length,
+    geo_tagged_proxies: geoTaggedProxies,
+    unresolved_proxies: Math.max(items.length - geoTaggedProxies, 0),
+    geo_enabled: geoTaggedProxies > 0,
+    geo_file: "",
+    geo_file_exists: geoTaggedProxies > 0
+  };
+
+  return { coverage, countries, asns };
 }
 
 export function deriveProviderSummaries(items: ProxyEndpoint[]): ProviderSummary[] {

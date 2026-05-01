@@ -13,6 +13,71 @@ Frontend env variable:
 
 ## Endpoints
 
+### GET /auth/session
+
+Response when auth is disabled:
+
+```json
+{
+  "enabled": false,
+  "authenticated": false,
+  "username": null,
+  "expires_at": null,
+  "auth_method": "disabled"
+}
+```
+
+Response when auth is enabled and the browser session is valid:
+
+```json
+{
+  "enabled": true,
+  "authenticated": true,
+  "username": "admin",
+  "expires_at": "2026-05-01T12:00:00+08:00",
+  "auth_method": "session"
+}
+```
+
+### POST /auth/login
+
+Request:
+
+```json
+{
+  "username": "admin",
+  "password": "replace-me"
+}
+```
+
+Response:
+
+```json
+{
+  "enabled": true,
+  "authenticated": true,
+  "username": "admin",
+  "expires_at": "2026-05-01T12:00:00+08:00",
+  "auth_method": "session"
+}
+```
+
+The backend also sets an `HttpOnly` session cookie for subsequent dashboard requests.
+
+### POST /auth/logout
+
+Response:
+
+```json
+{
+  "enabled": true,
+  "authenticated": false,
+  "username": null,
+  "expires_at": null,
+  "auth_method": null
+}
+```
+
 ### GET /health
 
 Response:
@@ -131,6 +196,14 @@ Response:
 
 ```json
 {
+  "coverage": {
+    "total_proxies": 3200,
+    "geo_tagged_proxies": 2140,
+    "unresolved_proxies": 1060,
+    "geo_enabled": true,
+    "geo_file": "config/geo.csv",
+    "geo_file_exists": true
+  },
   "countries": [
     {"country": "US", "total": 120, "elite": 32, "avg_latency_ms": 820}
   ],
@@ -141,6 +214,11 @@ Response:
 ```
 
 ### GET /validation/jobs
+
+Query:
+
+- `limit` default `50`, max `500`
+- `offset` default `0`
 
 Response:
 
@@ -157,11 +235,19 @@ Response:
       "timeout_count": 42,
       "status": "finished"
     }
-  ]
+  ],
+  "total": 18,
+  "limit": 10,
+  "offset": 0
 }
 ```
 
 ### GET /events
+
+Query:
+
+- `limit` default `50`, max `500`
+- `offset` default `0`
 
 Response:
 
@@ -175,12 +261,17 @@ Response:
       "message": "Proxy timed out during validation",
       "created_at": "2026-04-30T12:00:00+08:00"
     }
-  ]
+  ],
+  "total": 128,
+  "limit": 20,
+  "offset": 0
 }
 ```
 
 ## Security and Privacy
 
+- Protected dashboard and management endpoints should require either a valid session cookie or
+  HTTP Basic Auth when backend auth is enabled.
 - Do not return proxy passwords unless explicitly required by an authenticated internal admin feature.
 - Mask credentials in the UI by default.
 - Do not log proxy credentials in frontend console.

@@ -3,28 +3,46 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
+import { PaginationControls } from "../components/common/PaginationControls";
 import { ProviderTable } from "../components/providers/ProviderTable";
+import { ProviderUrlImportForm } from "../components/providers/ProviderUrlImportForm";
 import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { ProviderSummary } from "../types";
 
+const PAGE_SIZE = 8;
+
 export function ProvidersPage() {
-  const { t } = useI18n();
+  const { t, language, formatNumber } = useI18n();
   const [items, setItems] = useState<ProviderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  async function loadProviders() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const providers = await dashboardApi.listProviders();
+      setItems(providers);
+      setPage(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("providers.loadError"));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
-      setError(null);
-
       try {
         const providers = await dashboardApi.listProviders();
         if (!cancelled) {
           setItems(providers);
+          setError(null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -42,7 +60,7 @@ export function ProvidersPage() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [language]);
 
   if (loading) {
     return <LoadingState label={t("providers.loading")} />;
@@ -52,9 +70,9 @@ export function ProvidersPage() {
     return <ErrorState message={error} />;
   }
 
-  if (items.length === 0) {
-    return <EmptyState title={t("providers.emptyTitle")} message={t("providers.emptyMessage")} />;
-  }
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const offset = (page - 1) * PAGE_SIZE;
+  const visibleItems = items.slice(offset, offset + PAGE_SIZE);
 
   return (
     <div className="section-page">
@@ -67,14 +85,36 @@ export function ProvidersPage() {
         </p>
       </section>
 
+      <ProviderUrlImportForm onImported={loadProviders} />
+
       <section className="panel">
         <div className="panel-header">
           <div>
             <h2>{t("providers.inventory")}</h2>
-            <p>{t("providers.description")}</p>
+            <p>
+              {items.length === 0
+                ? t("providers.emptyMessage")
+                : t("common.listRange", {
+                    start: formatNumber(offset + 1),
+                    end: formatNumber(offset + visibleItems.length),
+                    total: formatNumber(items.length)
+                  })}
+            </p>
           </div>
+          <PaginationControls
+            ariaLabel={t("providers.paginationLabel")}
+            page={page}
+            totalPages={totalPages}
+            disabled={loading || items.length === 0}
+            onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+            onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
+          />
         </div>
-        <ProviderTable items={items} />
+        {visibleItems.length === 0 ? (
+          <EmptyState title={t("providers.emptyTitle")} message={t("providers.emptyMessage")} />
+        ) : (
+          <ProviderTable items={visibleItems} />
+        )}
       </section>
     </div>
   );

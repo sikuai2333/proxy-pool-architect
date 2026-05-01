@@ -99,6 +99,20 @@ proxies:
     assert proxies[0].password == "pass"
 
 
+def test_clash_subscription_provider_parses_v2ray_uri_subscription_lines() -> None:
+    provider = ClashSubscriptionProvider(urls=[], files=[])
+
+    proxies = provider._parse_subscription(
+        """
+vmess://eyJhZGQiOiIxLjIuMy40IiwicG9ydCI6IjQ0MyIsImlkIjoidXVpZCJ9
+http://9.9.9.9:8080
+""",
+        source_label="test",
+    )
+
+    assert [proxy.id for proxy in proxies] == ["http-9.9.9.9-8080"]
+
+
 def test_tor_provider_returns_local_socks_endpoint() -> None:
     async def run() -> None:
         provider = TorProvider(socks_host="127.0.0.1", socks_port=9050)
@@ -147,5 +161,34 @@ def test_core_adapter_provider_infers_mixed_port_from_config(tmp_path) -> None:
         assert len(proxies) == 1
         assert proxies[0].scheme == "http"
         assert proxies[0].port == 7890
+
+    asyncio.run(run())
+
+
+def test_core_adapter_provider_infers_v2ray_socks_inbound_from_json_config(tmp_path) -> None:
+    async def run() -> None:
+        config_file = tmp_path / "xray.json"
+        config_file.write_text(
+            """
+{
+  "inbounds": [
+    {"protocol": "socks", "listen": "127.0.0.1", "port": 10808}
+  ]
+}
+""",
+            encoding="utf-8",
+        )
+        provider = CoreAdapterProvider(
+            core_name="xray",
+            command=[],
+            config_file=str(config_file),
+            local_host="127.0.0.1",
+        )
+
+        proxies = await provider.fetch()
+
+        assert len(proxies) == 1
+        assert proxies[0].scheme == "socks5"
+        assert proxies[0].port == 10808
 
     asyncio.run(run())

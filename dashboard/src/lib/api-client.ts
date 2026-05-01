@@ -1,4 +1,5 @@
 import {
+  getMockAuthSession,
   getMockSettings,
   deleteMockProxy,
   getMockEvents,
@@ -7,21 +8,28 @@ import {
   getMockProviders,
   getMockProxy,
   getMockProxyFilterOptions,
+  submitMockProxyUrl,
   updateMockSettings,
   getMockValidationJobs,
+  loginMockDashboard,
+  logoutMockDashboard,
   listMockProxies
 } from "./mock-data";
 import { collectProxyFilterOptions } from "./proxy-list";
 import type {
+  AuthSessionStatus,
   DeleteProxyResult,
   DashboardSettings,
   EventLogEntry,
   GeoSummary,
   OverviewData,
+  PaginatedResponse,
   ProviderSummary,
   ProxyAnonymity,
   ProxyEndpoint,
   ProxyFilterOptions,
+  ProxyUrlImportFileType,
+  ProxyUrlImportResult,
   ProxyListQuery,
   ProxyListResponse,
   ValidationJob
@@ -40,15 +48,19 @@ export interface DashboardApiClientOptions {
 }
 
 export interface DashboardApiClient {
+  getAuthSession(): Promise<AuthSessionStatus>;
+  login(username: string, password: string): Promise<AuthSessionStatus>;
+  logout(): Promise<AuthSessionStatus>;
   getOverview(): Promise<OverviewData>;
   listProxies(query: ProxyListQuery): Promise<ProxyListResponse>;
   getProxy(proxyId: string): Promise<ProxyEndpoint>;
   deleteProxy(proxyId: string): Promise<DeleteProxyResult>;
+  importProxyUrl(url: string, fileType: ProxyUrlImportFileType): Promise<ProxyUrlImportResult>;
   getProxyFilterOptions(): Promise<ProxyFilterOptions>;
   getGeoSummary(): Promise<GeoSummary>;
   listProviders(): Promise<ProviderSummary[]>;
-  listValidationJobs(): Promise<ValidationJob[]>;
-  listEvents(): Promise<EventLogEntry[]>;
+  listValidationJobs(limit?: number, offset?: number): Promise<PaginatedResponse<ValidationJob>>;
+  listEvents(limit?: number, offset?: number): Promise<PaginatedResponse<EventLogEntry>>;
   getSettings(): Promise<DashboardSettings>;
   updateSettings(settings: DashboardSettings): Promise<DashboardSettings>;
 }
@@ -81,6 +93,8 @@ interface LiveHealthResponse {
   redis?: "ok" | "error" | "unknown";
   scheduler?: "running" | "stopped" | "unknown";
 }
+
+interface LiveAuthStatusResponse extends AuthSessionStatus {}
 
 interface LiveStatsResponse {
   pools?: Partial<Record<ProxyPool, number>>;
@@ -134,9 +148,12 @@ interface LiveDeleteProxyResponse {
   deleted: boolean;
 }
 
+interface LiveProxyUrlImportResponse extends ProxyUrlImportResult {}
+
 interface LiveGeoSummaryResponse {
-  countries: GeoSummary["countries"];
-  asns: GeoSummary["asns"];
+  coverage?: GeoSummary["coverage"] | null;
+  countries?: GeoSummary["countries"] | null;
+  asns?: GeoSummary["asns"] | null;
 }
 
 interface LiveProvidersResponse {
@@ -145,10 +162,16 @@ interface LiveProvidersResponse {
 
 interface LiveValidationJobsResponse {
   items: ValidationJob[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 interface LiveEventsResponse {
   items: EventLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 interface LiveSettingsResponse extends DashboardSettings {}
@@ -176,6 +199,29 @@ function normalizeLiveProxy(proxy: LiveProxyResponse): ProxyEndpoint {
     last_error: proxy.last_error ?? null,
     cooldown_until: proxy.cooldown_until ?? null,
     status: proxy.status
+  };
+}
+
+function normalizeGeoSummary(payload: LiveGeoSummaryResponse): GeoSummary {
+  const countries = payload.countries ?? [];
+  const asns = payload.asns ?? [];
+  const inferredTotal = Math.max(
+    countries.reduce((sum, item) => sum + item.total, 0),
+    asns.reduce((sum, item) => sum + item.total, 0)
+  );
+  const coverage = payload.coverage ?? {
+    total_proxies: inferredTotal,
+    geo_tagged_proxies: inferredTotal,
+    unresolved_proxies: 0,
+    geo_enabled: inferredTotal > 0,
+    geo_file: "",
+    geo_file_exists: inferredTotal > 0
+  };
+
+  return {
+    coverage,
+    countries,
+    asns
   };
 }
 
@@ -209,17 +255,27 @@ export function createDashboardApiClient(
 
   async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     const controller = new AbortController();
-    const timer = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+    let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = globalThis.setTimeout(() => {
+        controller.abort();
+        reject(new DashboardApiError(`Request timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
 
     try {
-      const response = await fetch(`${baseUrl}${path}`, {
-        ...init,
-        headers: {
-          Accept: "application/json",
-          ...(init?.headers ?? {})
-        },
-        signal: controller.signal
-      });
+      const response = await Promise.race([
+        fetch(`${baseUrl}${path}`, {
+          ...init,
+          headers: {
+            Accept: "application/json",
+            ...(init?.headers ?? {})
+          },
+          credentials: "include",
+          signal: controller.signal
+        }),
+        timeoutPromise
+      ]);
 
       if (!response.ok) {
         const detail = await parseError(response);
@@ -240,8 +296,17 @@ export function createDashboardApiClient(
         error instanceof Error ? error.message : "Unexpected API request failure"
       );
     } finally {
-      globalThis.clearTimeout(timer);
+      if (timer) {
+        globalThis.clearTimeout(timer);
+      }
     }
+  }
+
+  function buildPaginationPath(path: string, limit: number, offset: number) {
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    params.set("offset", String(offset));
+    return `${path}?${params.toString()}`;
   }
 
   function buildLiveProxyListPath(query: ProxyListQuery) {
@@ -286,6 +351,38 @@ export function createDashboardApiClient(
   }
 
   return {
+    async getAuthSession() {
+      if (mode === "mock") {
+        return getMockAuthSession(mockDelayMs);
+      }
+
+      return fetchJson<LiveAuthStatusResponse>("/auth/session");
+    },
+
+    async login(username, password) {
+      if (mode === "mock") {
+        return loginMockDashboard(username, password, mockDelayMs);
+      }
+
+      return fetchJson<LiveAuthStatusResponse>("/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+      });
+    },
+
+    async logout() {
+      if (mode === "mock") {
+        return logoutMockDashboard(mockDelayMs);
+      }
+
+      return fetchJson<LiveAuthStatusResponse>("/auth/logout", {
+        method: "POST"
+      });
+    },
+
     async getOverview() {
       if (mode === "mock") {
         return getMockOverviewData(mockDelayMs);
@@ -371,6 +468,23 @@ export function createDashboardApiClient(
       return { ok: response.deleted };
     },
 
+    async importProxyUrl(url, fileType) {
+      if (mode === "mock") {
+        return submitMockProxyUrl(url, fileType, mockDelayMs);
+      }
+
+      return fetchJson<LiveProxyUrlImportResponse>("/providers/import-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          url,
+          file_type: fileType
+        })
+      });
+    },
+
     async getProxyFilterOptions() {
       if (mode === "mock") {
         return getMockProxyFilterOptions(mockDelayMs);
@@ -386,7 +500,8 @@ export function createDashboardApiClient(
       }
 
       try {
-        return await fetchJson<LiveGeoSummaryResponse>("/geo/summary");
+        const response = await fetchJson<LiveGeoSummaryResponse>("/geo/summary");
+        return normalizeGeoSummary(response);
       } catch (error) {
         if (!(error instanceof DashboardApiError) || error.status !== 404) {
           throw error;
@@ -415,37 +530,37 @@ export function createDashboardApiClient(
       }
     },
 
-    async listValidationJobs() {
+    async listValidationJobs(limit = 10, offset = 0) {
       if (mode === "mock") {
-        return getMockValidationJobs(mockDelayMs);
+        return getMockValidationJobs(limit, offset, mockDelayMs);
       }
 
       try {
-        const response = await fetchJson<LiveValidationJobsResponse>("/validation/jobs");
-        return response.items;
+        return await fetchJson<LiveValidationJobsResponse>(
+          buildPaginationPath("/validation/jobs", limit, offset)
+        );
       } catch (error) {
         if (!(error instanceof DashboardApiError) || error.status !== 404) {
           throw error;
         }
 
-        return getMockValidationJobs(mockDelayMs);
+        return getMockValidationJobs(limit, offset, mockDelayMs);
       }
     },
 
-    async listEvents() {
+    async listEvents(limit = 20, offset = 0) {
       if (mode === "mock") {
-        return getMockEvents(mockDelayMs);
+        return getMockEvents(limit, offset, mockDelayMs);
       }
 
       try {
-        const response = await fetchJson<LiveEventsResponse>("/events");
-        return response.items;
+        return await fetchJson<LiveEventsResponse>(buildPaginationPath("/events", limit, offset));
       } catch (error) {
         if (!(error instanceof DashboardApiError) || error.status !== 404) {
           throw error;
         }
 
-        return getMockEvents(mockDelayMs);
+        return getMockEvents(limit, offset, mockDelayMs);
       }
     },
 

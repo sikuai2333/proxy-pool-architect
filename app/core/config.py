@@ -1,7 +1,9 @@
+import json
 from functools import lru_cache
+from typing import Annotated, Literal
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -16,12 +18,23 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
-    cors_allowed_origins: list[str] = Field(
+    auth_enabled: bool = False
+    auth_admin_username: str = ""
+    auth_admin_password: str = ""
+    auth_session_ttl_seconds: int = Field(default=43200, ge=60)
+    auth_session_cookie_name: str = "proxy_pool_session"
+    auth_session_secure: bool = False
+    auth_session_samesite: Literal["lax", "strict", "none"] = "lax"
+    cors_allowed_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
+    cors_allow_credentials: bool = False
+    allowed_hosts: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    gzip_minimum_size: int = Field(default=1024, ge=0)
     log_level: str = "INFO"
     log_json: bool = False
     redis_url: str = "redis://localhost:6379/0"
+    proxy_list_cache_ttl_seconds: int = Field(default=10, ge=0)
 
     provider_static_enabled: bool = True
     provider_static_proxies: list[str] = Field(default_factory=list)
@@ -52,6 +65,42 @@ class Settings(BaseSettings):
     safe_authorized_targets_only: bool = True
     safe_block_private_networks: bool = True
     safe_mask_proxy_credentials: bool = True
+    runtime_event_limit: int = Field(default=500, ge=1)
+    runtime_validation_job_limit: int = Field(default=200, ge=1)
+    runtime_event_retention_seconds: int = Field(default=86400, ge=1)
+    runtime_validation_job_retention_seconds: int = Field(default=604800, ge=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _parse_list_fields(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+
+        for field_name in ("cors_allowed_origins", "allowed_hosts"):
+            value = values.get(field_name)
+            if value is None or isinstance(value, list):
+                continue
+            if isinstance(value, str):
+                stripped = value.strip()
+                if not stripped:
+                    values[field_name] = []
+                elif stripped.startswith("["):
+                    values[field_name] = json.loads(stripped)
+                else:
+                    values[field_name] = [
+                        item.strip() for item in stripped.split(",") if item.strip()
+                    ]
+        return values
+
+    @model_validator(mode="after")
+    def _validate_auth_settings(self) -> "Settings":
+        if self.auth_enabled and (
+            not self.auth_admin_username.strip() or not self.auth_admin_password.strip()
+        ):
+            raise ValueError(
+                "AUTH_ENABLED requires both AUTH_ADMIN_USERNAME and AUTH_ADMIN_PASSWORD"
+            )
+        return self
 
 
 @lru_cache

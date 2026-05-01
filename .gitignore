@@ -35,6 +35,7 @@ htmlcov/
 # Tooling and editor state
 .idea/
 .vscode/
+.pnpm-store/
 *.swp
 *.swo
 .DS_Store
@@ -46,6 +47,7 @@ docker-data/
 
 # Frontend dashboard artifacts
 dashboard/node_modules/
+dashboard/.pnpm-store/
 dashboard/dist/
 dashboard/.vite/
 dashboard/coverage/
