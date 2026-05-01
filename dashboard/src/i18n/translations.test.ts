@@ -17,5 +17,6 @@ describe("dashboard translations", () => {
     expect(languageLabels["zh-CN"]).toBe("language.zh-CN");
     expect(resources["zh-CN"]["settings.language"]).toBe("语言");
     expect(resources["zh-CN"]["nav.settings"]).toBe("设置");
+    expect(resources["zh-CN"]["geo.latencyAnalysis"]).toBe("延迟分析");
   });
 });

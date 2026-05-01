@@ -289,6 +289,44 @@ describe("dashboard API client", () => {
     expect(summary.countries[0].elite).toBe(1);
   });
 
+  it("maps live geo summary responses with country and ASN latency data", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          countries: [{ country: "US", total: 4, elite: 2, avg_latency_ms: 610 }],
+          asns: [{ asn: "AS20473", total: 3, elite: 1, avg_latency_ms: 560 }]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDashboardApiClient({
+      mode: "live",
+      baseUrl: "http://localhost:8000",
+      timeoutMs: 1000
+    });
+
+    const summary = await client.getGeoSummary();
+
+    expect(summary.countries[0]).toMatchObject({
+      country: "US",
+      total: 4,
+      elite: 2,
+      avg_latency_ms: 610
+    });
+    expect(summary.asns[0]).toMatchObject({
+      asn: "AS20473",
+      avg_latency_ms: 560
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/geo/summary",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "application/json" })
+      })
+    );
+  });
+
   it("derives provider summaries from live proxy snapshots when /providers is missing", async () => {
     const snapshotPayload = {
       proxies: [

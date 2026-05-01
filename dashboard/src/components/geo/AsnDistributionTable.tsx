@@ -11,12 +11,13 @@ export function AsnDistributionTable({ items }: AsnDistributionTableProps) {
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
+        <caption className="sr-only">{t("geo.asnTableCaption")}</caption>
         <thead>
           <tr>
-            <th>ASN</th>
-            <th>{t("geo.total")}</th>
-            <th>{t("geo.elite")}</th>
-            <th>{t("geo.averageLatency")}</th>
+            <th scope="col">ASN</th>
+            <th scope="col">{t("geo.total")}</th>
+            <th scope="col">{t("geo.elite")}</th>
+            <th scope="col">{t("geo.averageLatency")}</th>
           </tr>
         </thead>
         <tbody>

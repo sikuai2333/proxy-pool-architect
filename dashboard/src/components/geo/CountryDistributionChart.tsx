@@ -10,9 +10,9 @@ export function CountryDistributionChart({ items }: CountryDistributionChartProp
   const maxTotal = items[0]?.total ?? 1;
 
   return (
-    <div className="stack-list">
+    <div className="stack-list" role="list">
       {items.map((item) => (
-        <div key={item.country} className="stack-row">
+        <div key={item.country} className="stack-row" role="listitem">
           <div className="stack-row-header">
             <strong>{item.country}</strong>
             <span>

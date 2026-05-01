@@ -16,23 +16,24 @@ export function ProxyTable({ items, onView, onDelete }: ProxyTableProps) {
   return (
     <div className="table-shell">
       <table className="proxy-table">
+        <caption className="sr-only">{t("proxies.tableCaption")}</caption>
         <thead>
           <tr>
-            <th>{t("proxies.table.status")}</th>
-            <th>{t("proxies.table.scheme")}</th>
-            <th>{t("proxies.table.host")}</th>
-            <th>{t("proxies.table.port")}</th>
-            <th>{t("proxies.table.source")}</th>
-            <th>{t("proxies.table.country")}</th>
-            <th>ASN</th>
-            <th>{t("proxies.table.anonymity")}</th>
-            <th>{t("proxies.table.latency")}</th>
-            <th>{t("proxies.table.score")}</th>
-            <th>{t("proxies.table.success")}</th>
-            <th>{t("proxies.table.fail")}</th>
-            <th>{t("proxies.table.lastChecked")}</th>
-            <th>{t("proxies.table.lastError")}</th>
-            <th>{t("proxies.table.actions")}</th>
+            <th scope="col">{t("proxies.table.status")}</th>
+            <th scope="col">{t("proxies.table.scheme")}</th>
+            <th scope="col">{t("proxies.table.host")}</th>
+            <th scope="col">{t("proxies.table.port")}</th>
+            <th scope="col">{t("proxies.table.source")}</th>
+            <th scope="col">{t("proxies.table.country")}</th>
+            <th scope="col">ASN</th>
+            <th scope="col">{t("proxies.table.anonymity")}</th>
+            <th scope="col">{t("proxies.table.latency")}</th>
+            <th scope="col">{t("proxies.table.score")}</th>
+            <th scope="col">{t("proxies.table.success")}</th>
+            <th scope="col">{t("proxies.table.fail")}</th>
+            <th scope="col">{t("proxies.table.lastChecked")}</th>
+            <th scope="col">{t("proxies.table.lastError")}</th>
+            <th scope="col">{t("proxies.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -60,10 +61,20 @@ export function ProxyTable({ items, onView, onDelete }: ProxyTableProps) {
               <td className="cell-error">{proxy.last_error || t("common.none")}</td>
               <td>
                 <div className="table-actions">
-                  <button className="button button-secondary" type="button" onClick={() => onView(proxy)}>
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    aria-label={`${t("common.view")} ${proxy.id}`}
+                    onClick={() => onView(proxy)}
+                  >
                     {t("common.view")}
                   </button>
-                  <button className="button button-danger" type="button" onClick={() => onDelete(proxy)}>
+                  <button
+                    className="button button-danger"
+                    type="button"
+                    aria-label={`${t("common.delete")} ${proxy.id}`}
+                    onClick={() => onDelete(proxy)}
+                  >
                     {t("common.delete")}
                   </button>
                 </div>

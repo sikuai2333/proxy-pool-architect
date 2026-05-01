@@ -47,6 +47,7 @@ backend supports `/health`, `/stats`, `/proxy/list`, `/proxy/{proxy_id}`,
 ## Current Phase 3 Scope
 
 - Geo page with country distribution and ASN summary
+- Latency analysis from country and ASN average latency
 - Providers page with provider status table
 - Validation page with job history and common error types
 - Logs page with event history

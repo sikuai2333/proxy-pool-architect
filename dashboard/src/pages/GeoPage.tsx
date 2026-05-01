@@ -5,6 +5,7 @@ import { ErrorState } from "../components/common/ErrorState";
 import { LoadingState } from "../components/common/LoadingState";
 import { AsnDistributionTable } from "../components/geo/AsnDistributionTable";
 import { CountryDistributionChart } from "../components/geo/CountryDistributionChart";
+import { LatencyAnalysisPanel } from "../components/geo/LatencyAnalysisPanel";
 import { useI18n } from "../i18n";
 import { dashboardApi, dashboardDataMode } from "../lib/api-client";
 import type { GeoSummary } from "../types";
@@ -86,6 +87,16 @@ export function GeoPage() {
           </div>
         </div>
         <AsnDistributionTable items={data.asns.slice(0, 10)} />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>{t("geo.latencyAnalysis")}</h2>
+            <p>{t("geo.latencyDescription")}</p>
+          </div>
+        </div>
+        <LatencyAnalysisPanel countries={data.countries} asns={data.asns} />
       </section>
     </div>
   );

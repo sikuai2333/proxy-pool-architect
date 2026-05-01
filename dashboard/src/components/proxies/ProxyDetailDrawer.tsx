@@ -34,7 +34,7 @@ export function ProxyDetailDrawer({ open, proxy, loading, onClose }: ProxyDetail
             <h2 id="proxy-detail-title">{t("proxies.detail.title")}</h2>
             <p>{proxy ? proxy.id : t("proxies.detail.inspecting")}</p>
           </div>
-          <button className="button button-secondary" type="button" onClick={onClose}>
+          <button className="button button-secondary" type="button" aria-label={t("common.close")} onClick={onClose}>
             {t("common.close")}
           </button>
         </div>

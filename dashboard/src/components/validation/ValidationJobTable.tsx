@@ -11,17 +11,18 @@ export function ValidationJobTable({ items }: ValidationJobTableProps) {
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
+        <caption className="sr-only">{t("validation.tableCaption")}</caption>
         <thead>
           <tr>
-            <th>{t("validation.job")}</th>
-            <th>{t("providers.status")}</th>
-            <th>{t("validation.started")}</th>
-            <th>{t("validation.finished")}</th>
-            <th>{t("validation.checked")}</th>
-            <th>{t("proxies.table.success")}</th>
-            <th>{t("proxies.table.fail")}</th>
-            <th>{t("validation.timeout")}</th>
-            <th>{t("overview.successRate")}</th>
+            <th scope="col">{t("validation.job")}</th>
+            <th scope="col">{t("providers.status")}</th>
+            <th scope="col">{t("validation.started")}</th>
+            <th scope="col">{t("validation.finished")}</th>
+            <th scope="col">{t("validation.checked")}</th>
+            <th scope="col">{t("proxies.table.success")}</th>
+            <th scope="col">{t("proxies.table.fail")}</th>
+            <th scope="col">{t("validation.timeout")}</th>
+            <th scope="col">{t("overview.successRate")}</th>
           </tr>
         </thead>
         <tbody>

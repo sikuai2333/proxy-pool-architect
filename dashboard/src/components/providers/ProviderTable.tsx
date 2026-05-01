@@ -11,14 +11,15 @@ export function ProviderTable({ items }: ProviderTableProps) {
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
+        <caption className="sr-only">{t("providers.tableCaption")}</caption>
         <thead>
           <tr>
-            <th>{t("providers.name")}</th>
-            <th>{t("providers.status")}</th>
-            <th>{t("providers.lastFetch")}</th>
-            <th>{t("providers.fetchedCount")}</th>
-            <th>{t("providers.validCount")}</th>
-            <th>{t("providers.errorSummary")}</th>
+            <th scope="col">{t("providers.name")}</th>
+            <th scope="col">{t("providers.status")}</th>
+            <th scope="col">{t("providers.lastFetch")}</th>
+            <th scope="col">{t("providers.fetchedCount")}</th>
+            <th scope="col">{t("providers.validCount")}</th>
+            <th scope="col">{t("providers.errorSummary")}</th>
           </tr>
         </thead>
         <tbody>

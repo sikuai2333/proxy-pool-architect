@@ -218,7 +218,7 @@ export function ProxiesPage() {
             <h2>{t("proxies.inventory")}</h2>
             <p>{buildListMessage(data, formatNumber, t)}</p>
           </div>
-          <div className="pagination">
+          <nav className="pagination" aria-label={t("proxies.paginationLabel")}>
             <button
               className="button button-secondary"
               type="button"
@@ -238,7 +238,7 @@ export function ProxiesPage() {
             >
               {t("proxies.paginationNext")}
             </button>
-          </div>
+          </nav>
         </div>
 
         {loading ? <LoadingState label={t("proxies.loadingInventory")} /> : null}

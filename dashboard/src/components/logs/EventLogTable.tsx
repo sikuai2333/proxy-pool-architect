@@ -11,12 +11,13 @@ export function EventLogTable({ items }: EventLogTableProps) {
   return (
     <div className="table-shell">
       <table className="proxy-table compact-table">
+        <caption className="sr-only">{t("logs.tableCaption")}</caption>
         <thead>
           <tr>
-            <th>{t("logs.time")}</th>
-            <th>{t("logs.level")}</th>
-            <th>{t("logs.type")}</th>
-            <th>{t("logs.message")}</th>
+            <th scope="col">{t("logs.time")}</th>
+            <th scope="col">{t("logs.level")}</th>
+            <th scope="col">{t("logs.type")}</th>
+            <th scope="col">{t("logs.message")}</th>
           </tr>
         </thead>
         <tbody>
