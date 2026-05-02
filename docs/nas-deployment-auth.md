@@ -9,7 +9,7 @@
 
 ## 1. 推荐部署结构
 
-推荐使用当前仓库自带的生产编排：
+推荐使用当前仓库根目录的 `compose.yml`：
 
 - `redis`：内部服务，不对外暴露
 - `api`：FastAPI 后端，容器内监听 `8000`
@@ -92,13 +92,13 @@ SCHEDULER_ENABLED=true
 在项目根目录执行：
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up -d --build
 ```
 
 查看状态：
 
 ```bash
-docker compose -f docker-compose.prod.yml ps
+docker compose ps
 ```
 
 正常情况下应看到：
@@ -181,8 +181,8 @@ curl -X POST "http://<NAS-IP>:8080/api/auth/logout"
 如果你直接在 NAS 本机维护代码：
 
 ```bash
-docker compose -f docker-compose.prod.yml down
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose down
+docker compose up -d --build
 ```
 
 如果你在本地电脑构建镜像，再传到 NAS：
@@ -197,7 +197,7 @@ docker save -o proxy-pool-images.tar proxy-pool-architect:local proxy-pool-dashb
 
 ```bash
 docker load -i proxy-pool-images.tar
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 ## 9. 常见问题
@@ -233,7 +233,7 @@ curl -u "admin:change-me-strong-password" "http://<NAS-IP>:8080/api/stats"
 查看日志：
 
 ```bash
-docker compose -f docker-compose.prod.yml logs --tail=100 api
+docker compose logs --tail=100 api
 ```
 
 ### 4）公网访问是否需要额外处理
@@ -259,3 +259,28 @@ docker compose -f docker-compose.prod.yml logs --tail=100 api
 5. 暂时不拆分前后端域名
 
 这是当前最稳、最省事的落地方式。
+
+## 11. 如果 NAS 面板要求上传 compose.yml
+
+如果你的 NAS 面板是“项目 / Stack / Compose”形式创建，可以直接使用仓库根目录的
+`compose.yml`。
+
+创建前需要确保同目录下已经有 `.env.prod`，否则 `api` 容器会因为找不到配置文件而启动失败。
+
+目录结构应类似：
+
+```text
+proxy-pool-architect/
+  compose.yml
+  .env.prod
+  Dockerfile
+  dashboard/
+  app/
+  config/
+```
+
+如果你仍想使用旧文件名，也可以运行：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```

@@ -68,7 +68,7 @@ Run the production-oriented stack with dashboard + api + redis:
 
 ```bash
 copy .env.prod.example .env.prod
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up -d --build
 ```
 
 Build the Docker image:
@@ -478,7 +478,7 @@ You do not need to upload the repository to GitHub just to deploy it.
 
 Common deployment paths:
 
-1. Copy the repository to the server, then run `docker compose -f docker-compose.prod.yml up -d --build`.
+1. Copy the repository to the server, then run `docker compose up -d --build`.
 2. Build images on your workstation, export them with `docker save`, copy the tar files to the NAS, then `docker load` and start the same compose stack there.
 3. Build images in CI and push them to a registry such as GHCR, then run `docker compose pull && docker compose up -d`.
 
@@ -489,7 +489,8 @@ requirement for Docker deployment itself.
 The repository now includes:
 
 - `.env.prod.example`: production environment template
-- `docker-compose.prod.yml`: dashboard + api + redis deployment
+- `compose.yml`: default NAS-friendly Compose deployment
+- `docker-compose.prod.yml`: compatibility deployment file with the same dashboard + api + redis stack
 - `dashboard/Dockerfile` and `dashboard/nginx.conf`: same-origin frontend serving with `/api` reverse proxy
 - `docs/nas-deployment-auth.md`: NAS + Docker + login auth deployment guide
 
@@ -501,7 +502,7 @@ Recommended production flow:
 4. If the dashboard and API stay on the same origin via `/api`, keep `CORS_ALLOWED_ORIGINS=[]`.
 5. If you split frontend and API across different origins, explicitly set `CORS_ALLOWED_ORIGINS` and `CORS_ALLOW_CREDENTIALS=true`.
 6. If the NAS is behind HTTPS, set `AUTH_SESSION_SECURE=true`; keep it `false` for plain HTTP-only LAN testing.
-7. Start with `docker compose -f docker-compose.prod.yml up -d --build`.
+7. Start with `docker compose up -d --build`.
 
 For NAS deployments without GitHub or a registry, a simple transfer flow is:
 
@@ -515,7 +516,7 @@ Copy `proxy-pool-images.tar`, the repository, and `.env.prod` to the NAS, then r
 
 ```bash
 docker load -i proxy-pool-images.tar
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 This project is closer to production-ready after the current changes, but it still does not have:
