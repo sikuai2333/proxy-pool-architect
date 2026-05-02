@@ -90,7 +90,9 @@ class CoreAdapterProvider(ProxyProvider):
             return
 
         _register_cleanup()
-        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        creationflags = (
+            int(getattr(subprocess, "CREATE_NO_WINDOW", 0)) if sys.platform == "win32" else 0
+        )
         process = subprocess.Popen(
             self._command,
             cwd=self._working_dir,

@@ -10,6 +10,7 @@ from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
 from app.services.url_import_service import ProxyUrlImportService
 from app.storage.redis_store import RedisStore
+from app.utils.time import utc_now_iso
 from tests.fakes import FakeRedis
 
 
@@ -107,17 +108,18 @@ def test_dashboard_events_validation_jobs_and_settings_endpoints_roundtrip() -> 
     client, _ = make_client()
     settings = get_settings()
     original = settings.model_copy(deep=True)
+    now = utc_now_iso()
     client.app.state.runtime_activity.record_event(
         "validation_failed",
         "warning",
         "Proxy timed out during validation.",
-        created_at="2026-05-01T08:10:00+08:00",
+        created_at=now,
     )
     client.app.state.runtime_activity.record_validation_job(
         ValidationJob(
             id="job-001",
-            started_at="2026-05-01T08:00:00+08:00",
-            finished_at="2026-05-01T08:03:00+08:00",
+            started_at=now,
+            finished_at=now,
             checked_count=12,
             success_count=5,
             fail_count=7,
@@ -172,23 +174,24 @@ def test_dashboard_events_validation_jobs_and_settings_endpoints_roundtrip() -> 
 
 def test_dashboard_event_and_validation_pagination() -> None:
     client, _ = make_client()
+    now = utc_now_iso()
     client.app.state.runtime_activity.record_event(
         "event-1",
         "info",
         "first",
-        created_at="2026-05-01T08:00:00+08:00",
+        created_at=now,
     )
     client.app.state.runtime_activity.record_event(
         "event-2",
         "warning",
         "second",
-        created_at="2026-05-01T08:01:00+08:00",
+        created_at=now,
     )
     client.app.state.runtime_activity.record_validation_job(
         ValidationJob(
             id="job-001",
-            started_at="2026-05-01T08:00:00+08:00",
-            finished_at="2026-05-01T08:02:00+08:00",
+            started_at=now,
+            finished_at=now,
             checked_count=10,
             success_count=2,
             fail_count=8,
@@ -199,8 +202,8 @@ def test_dashboard_event_and_validation_pagination() -> None:
     client.app.state.runtime_activity.record_validation_job(
         ValidationJob(
             id="job-002",
-            started_at="2026-05-01T08:03:00+08:00",
-            finished_at="2026-05-01T08:04:00+08:00",
+            started_at=now,
+            finished_at=now,
             checked_count=5,
             success_count=1,
             fail_count=4,
