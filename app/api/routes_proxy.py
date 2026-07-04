@@ -18,13 +18,13 @@ from app.models.api import (
 from app.models.proxy import ProxyAnonymity, ProxyFilters, ProxyPool, ProxyScheme
 from app.services.proxy_service import ProxyService
 from app.services.runtime_activity_service import RuntimeActivityService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.proxy_url import format_proxy_url
 
 router = APIRouter(tags=["proxy"], dependencies=[Depends(require_admin_auth)])
 
 
-def get_proxy_service(store: Annotated[RedisStore, Depends(get_store)]) -> ProxyService:
+def get_proxy_service(store: Annotated[SQLiteStore, Depends(get_store)]) -> ProxyService:
     settings = get_settings()
     return ProxyService(
         store,

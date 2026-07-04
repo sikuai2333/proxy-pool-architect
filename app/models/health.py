@@ -8,6 +8,6 @@ class HealthResponse(BaseModel):
     app: str
     version: str
     environment: str
-    redis_configured: bool
-    redis: Literal["ok", "error", "unknown"] = "unknown"
+    db_configured: bool
+    db: Literal["ok", "error", "unknown"] = "unknown"
     scheduler: Literal["running", "stopped", "unknown"] = "unknown"

@@ -1,11 +1,11 @@
 import asyncio
+import tempfile
 
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.models.proxy import ProxyEndpoint
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def make_proxy(
@@ -32,9 +32,9 @@ def make_proxy(
     )
 
 
-def make_client() -> tuple[TestClient, RedisStore]:
+def make_client() -> tuple[TestClient, SQLiteStore]:
     app = create_app()
-    store = RedisStore(FakeRedis())
+    store = SQLiteStore(tempfile.mktemp(suffix=".db"))
     app.state.store = store
     return TestClient(app), store
 
@@ -48,7 +48,7 @@ def test_get_proxy_returns_best_proxy_without_password() -> None:
     )
     asyncio.run(store.add_proxy("elite", proxy))
 
-    response = client.get("/proxy")
+    response = client.get("/api/proxy")
 
     assert response.status_code == 200
     payload = response.json()
@@ -67,7 +67,7 @@ def test_get_proxy_supports_text_format_without_credentials() -> None:
         )
     )
 
-    response = client.get("/proxy", params={"format": "text"})
+    response = client.get("/api/proxy", params={"format": "text"})
 
     assert response.status_code == 200
     assert response.text == "http://1.2.3.4:8080"
@@ -77,7 +77,7 @@ def test_get_proxy_returns_404_when_no_proxy_matches() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080", country="US")))
 
-    response = client.get("/proxy", params={"country": "SG"})
+    response = client.get("/api/proxy", params={"country": "SG"})
 
     assert response.status_code == 404
 
@@ -89,14 +89,14 @@ def test_get_proxy_reuses_session_affinity() -> None:
     asyncio.run(store.add_proxy("elite", first))
     asyncio.run(store.add_proxy("elite", second))
 
-    first_response = client.get("/proxy", params={"session_id": "task-1"})
+    first_response = client.get("/api/proxy", params={"session_id": "task-1"})
     assert first_response.status_code == 200
     assert first_response.json()["id"] == first.id
 
     asyncio.run(store.save_proxy("elite", first.model_copy(update={"score": 10})))
 
-    same_session_response = client.get("/proxy", params={"session_id": "task-1"})
-    other_session_response = client.get("/proxy", params={"session_id": "task-2"})
+    same_session_response = client.get("/api/proxy", params={"session_id": "task-1"})
+    other_session_response = client.get("/api/proxy", params={"session_id": "task-2"})
 
     assert same_session_response.status_code == 200
     assert same_session_response.json()["id"] == first.id
@@ -109,7 +109,7 @@ def test_list_proxies_filters_by_pool_and_country() -> None:
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080", country="US")))
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.5-8080", country="SG")))
 
-    response = client.get("/proxy/list", params={"pool": "checked", "country": "US"})
+    response = client.get("/api/proxy/list", params={"pool": "checked", "country": "US"})
 
     assert response.status_code == 200
     payload = response.json()
@@ -138,7 +138,7 @@ def test_list_proxies_supports_source_query_and_all_pool_contract() -> None:
         )
     )
 
-    response = client.get("/proxy/list", params={"source": "provider-b", "q": "5.6.7.8"})
+    response = client.get("/api/proxy/list", params={"source": "provider-b", "q": "5.6.7.8"})
 
     assert response.status_code == 200
     payload = response.json()
@@ -151,7 +151,7 @@ def test_get_proxy_detail_returns_proxy_by_id() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("elite", make_proxy("http-1.2.3.4-8080")))
 
-    response = client.get("/proxy/http-1.2.3.4-8080")
+    response = client.get("/api/proxy/http-1.2.3.4-8080")
 
     assert response.status_code == 200
     payload = response.json()
@@ -164,7 +164,7 @@ def test_report_proxy_updates_score_and_counts() -> None:
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080", score=50)))
 
     response = client.post(
-        "/proxy/report",
+        "/api/proxy/report",
         json={"proxy_id": "http-1.2.3.4-8080", "ok": True, "latency_ms": 80},
     )
 
@@ -182,7 +182,7 @@ def test_report_proxy_moves_repeated_failure_to_cooldown() -> None:
     asyncio.run(store.add_proxy("checked", proxy))
 
     response = client.post(
-        "/proxy/report",
+        "/api/proxy/report",
         json={"proxy_id": "http-1.2.3.4-8080", "ok": False, "error": "timeout"},
     )
 
@@ -199,7 +199,7 @@ def test_stats_returns_pool_counts_and_rates() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080")))
 
-    response = client.get("/stats")
+    response = client.get("/api/stats")
 
     assert response.status_code == 200
     payload = response.json()
@@ -214,7 +214,7 @@ def test_delete_proxy_removes_proxy() -> None:
     client, store = make_client()
     asyncio.run(store.add_proxy("checked", make_proxy("http-1.2.3.4-8080")))
 
-    response = client.delete("/proxy/http-1.2.3.4-8080")
+    response = client.delete("/api/proxy/http-1.2.3.4-8080")
 
     assert response.status_code == 200
     assert response.json() == {"proxy_id": "http-1.2.3.4-8080", "deleted": True, "ok": True}
@@ -224,6 +224,6 @@ def test_delete_proxy_removes_proxy() -> None:
 def test_delete_proxy_returns_404_for_missing_proxy() -> None:
     client, _ = make_client()
 
-    response = client.delete("/proxy/missing")
+    response = client.delete("/api/proxy/missing")
 
     assert response.status_code == 404

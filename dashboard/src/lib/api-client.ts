@@ -89,8 +89,8 @@ interface LiveHealthResponse {
   app: string;
   version: string;
   environment: string;
-  redis_configured: boolean;
-  redis?: "ok" | "error" | "unknown";
+  db_configured: boolean;
+  db?: "ok" | "error" | "unknown";
   scheduler?: "running" | "stopped" | "unknown";
 }
 
@@ -108,7 +108,7 @@ interface LiveStatsResponse {
   cooldown?: number;
   last_fetch_at?: string | null;
   last_validate_at?: string | null;
-  redis_status?: "ok" | "error" | "unknown";
+  db_status?: "ok" | "error" | "unknown";
   scheduler_status?: "running" | "stopped" | "unknown";
 }
 
@@ -404,12 +404,12 @@ export function createDashboardApiClient(
           success_rate: stats.success_rate,
           last_fetch_at: stats.last_fetch_at ?? null,
           last_validate_at: stats.last_validate_at ?? null,
-          redis_status: stats.redis_status ?? health.redis ?? (health.redis_configured ? "ok" : "unknown"),
+          db_status: stats.db_status ?? health.db ?? (health.db_configured ? "ok" : "unknown"),
           scheduler_status: stats.scheduler_status ?? health.scheduler ?? "unknown"
         },
         health: {
           status: health.status,
-          redis: health.redis ?? (health.redis_configured ? "ok" : "unknown"),
+          db: health.db ?? (health.db_configured ? "ok" : "unknown"),
           scheduler: health.scheduler ?? "unknown"
         }
       };

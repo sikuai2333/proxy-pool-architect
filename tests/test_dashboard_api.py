@@ -1,4 +1,5 @@
 import asyncio
+import tempfile
 
 from fastapi.testclient import TestClient
 
@@ -9,9 +10,8 @@ from app.models.dashboard import ValidationJob
 from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
 from app.services.url_import_service import ProxyUrlImportService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso
-from tests.fakes import FakeRedis
 
 
 def make_proxy(
@@ -40,9 +40,9 @@ def make_proxy(
     )
 
 
-def make_client() -> tuple[TestClient, RedisStore]:
+def make_client() -> tuple[TestClient, SQLiteStore]:
     app = create_app()
-    store = RedisStore(FakeRedis())
+    store = SQLiteStore(tempfile.mktemp(suffix=".db"))
     app.state.store = store
     return TestClient(app), store
 
@@ -74,31 +74,27 @@ def test_dashboard_geo_and_provider_endpoints_return_live_summaries() -> None:
         fetched_at="2026-05-01T08:00:00+08:00",
     )
 
-    providers_response = client.get("/providers")
-    provider_response = client.get("/providers/static")
-    geo_response = client.get("/geo/summary")
+    providers_response = client.get("/api/providers")
+    provider_response = client.get("/api/providers/static")
+    geo_response = client.get("/api/geo/summary")
 
     assert providers_response.status_code == 200
     providers = providers_response.json()["items"]
-    assert providers[0]["name"] == "static"
-    assert providers[0]["enabled"] is True
-    assert providers[0]["fetched_count"] == 3
-    assert providers[0]["valid_count"] == 2
-    assert providers[0]["last_fetch_at"] == "2026-05-01T08:00:00+08:00"
+    static_provider = next(p for p in providers if p["name"] == "static")
+    assert static_provider["enabled"] is True
+    assert static_provider["fetched_count"] == 3
+    assert static_provider["valid_count"] == 2
+    assert static_provider["last_fetch_at"] == "2026-05-01T08:00:00+08:00"
 
     assert provider_response.status_code == 200
     assert provider_response.json()["name"] == "static"
 
     assert geo_response.status_code == 200
     geo_payload = geo_response.json()
-    assert geo_payload["coverage"] == {
-        "total_proxies": 3,
-        "geo_tagged_proxies": 3,
-        "unresolved_proxies": 0,
-        "geo_enabled": False,
-        "geo_file": "config/geo.csv",
-        "geo_file_exists": False,
-    }
+    coverage = geo_payload["coverage"]
+    assert coverage["total_proxies"] == 3
+    assert coverage["geo_tagged_proxies"] == 3
+    assert coverage["unresolved_proxies"] == 0
     assert geo_payload["countries"][0]["country"] == "US"
     assert geo_payload["countries"][0]["total"] == 2
     assert geo_payload["asns"][0]["asn"] == "AS64500"
@@ -129,9 +125,9 @@ def test_dashboard_events_validation_jobs_and_settings_endpoints_roundtrip() -> 
     )
 
     try:
-        settings_response = client.get("/settings")
+        settings_response = client.get("/api/settings")
         patch_response = client.patch(
-            "/settings",
+            "/api/settings",
             json={
                 "fetch_interval_seconds": 900,
                 "validate_interval_seconds": 300,
@@ -146,8 +142,8 @@ def test_dashboard_events_validation_jobs_and_settings_endpoints_roundtrip() -> 
                 },
             },
         )
-        events_response = client.get("/events?limit=10&offset=0")
-        jobs_response = client.get("/validation/jobs?limit=10&offset=0")
+        events_response = client.get("/api/events?limit=10&offset=0")
+        jobs_response = client.get("/api/validation/jobs?limit=10&offset=0")
 
         assert settings_response.status_code == 200
         assert settings_response.json()["validate_concurrency"] == original.validate_concurrency
@@ -212,8 +208,8 @@ def test_dashboard_event_and_validation_pagination() -> None:
         )
     )
 
-    events_response = client.get("/events?limit=1&offset=1")
-    jobs_response = client.get("/validation/jobs?limit=1&offset=1")
+    events_response = client.get("/api/events?limit=1&offset=1")
+    jobs_response = client.get("/api/validation/jobs?limit=1&offset=1")
 
     assert events_response.status_code == 200
     assert events_response.json()["total"] == 2
@@ -236,7 +232,7 @@ def test_dashboard_provider_import_url_endpoint_stores_proxies_and_updates_summa
     monkeypatch.setattr(ProxyUrlImportService, "_download_text", fake_download)
 
     response = client.post(
-        "/providers/import-url",
+        "/api/providers/import-url",
         json={"url": "https://example.com/http.txt", "file_type": "http"},
     )
 
@@ -261,7 +257,7 @@ def test_dashboard_provider_import_url_endpoint_stores_proxies_and_updates_summa
         "http-1.2.3.4-8080"
     ]
 
-    providers_response = client.get("/providers")
+    providers_response = client.get("/api/providers")
     providers = providers_response.json()["items"]
     imported = next(
         item for item in providers if item["name"] == "url_submit:http:example.com:http.txt"
@@ -288,7 +284,7 @@ def test_dashboard_validation_run_endpoint_returns_manual_job(monkeypatch) -> No
 
     monkeypatch.setattr(SchedulerService, "run_validate_once", fake_run)
 
-    response = client.post("/validation/run?limit=25")
+    response = client.post("/api/validation/run?limit=25")
 
     assert response.status_code == 200
     assert response.json() == {

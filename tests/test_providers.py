@@ -6,8 +6,7 @@ from app.providers.static_provider import StaticProvider
 from app.providers.url_list_provider import UrlListProvider
 from app.services.fetch_service import FetchService
 from app.services.geo_service import GeoResolver
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def test_static_provider_parses_configured_proxies() -> None:
@@ -34,7 +33,7 @@ def test_fetch_service_enriches_geo_before_writing_to_raw_pool(tmp_path) -> None
     async def run() -> None:
         geo_file = tmp_path / "geo.csv"
         geo_file.write_text("cidr,country,asn\n1.2.3.0/24,US,AS64500\n", encoding="utf-8")
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         manager = ProviderManager([StaticProvider(["http://1.2.3.4:8080"])])
         service = FetchService(manager, store, geo_resolver=GeoResolver.from_csv(str(geo_file)))
 
@@ -85,7 +84,7 @@ def test_url_list_provider_accepts_bare_host_port_entries() -> None:
 def test_provider_manager_fetches_enabled_providers_only() -> None:
     async def run() -> None:
         enabled = StaticProvider(["http://1.2.3.4:8080"], enabled=True)
-        disabled = StaticProvider(["http://1.2.3.5:8080"], enabled=False)
+        disabled = StaticProvider(["http://1.2.3.5-8080"], enabled=False)
         manager = ProviderManager([enabled, disabled])
 
         proxies = await manager.fetch_all()
@@ -97,7 +96,7 @@ def test_provider_manager_fetches_enabled_providers_only() -> None:
 
 def test_fetch_service_deduplicates_and_writes_to_raw_pool() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         manager = ProviderManager(
             [
                 StaticProvider(

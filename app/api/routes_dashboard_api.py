@@ -20,13 +20,13 @@ from app.models.url_import import ProxyUrlImportRequest, ProxyUrlImportResponse
 from app.services.dashboard_api_service import DashboardApiService
 from app.services.runtime_activity_service import RuntimeActivityService
 from app.services.url_import_service import ProxyUrlImportError
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 router = APIRouter(tags=["dashboard-api"], dependencies=[Depends(require_admin_auth)])
 
 
 def get_dashboard_api_service(
-    store: Annotated[RedisStore, Depends(get_store)],
+    store: Annotated[SQLiteStore, Depends(get_store)],
     scheduler: Annotated[SchedulerService, Depends(get_scheduler)],
     runtime_activity: Annotated[RuntimeActivityService, Depends(get_runtime_activity)],
 ) -> DashboardApiService:

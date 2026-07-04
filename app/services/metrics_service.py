@@ -1,13 +1,13 @@
 from collections import Counter
 
 from app.storage.keys import POOL_NAMES
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 METRICS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
 class MetricsService:
-    def __init__(self, store: RedisStore) -> None:
+    def __init__(self, store: SQLiteStore) -> None:
         self._store = store
 
     async def render_prometheus(self) -> str:

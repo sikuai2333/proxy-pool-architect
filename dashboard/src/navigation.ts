@@ -7,7 +7,8 @@ export const navigationItems: NavigationItem[] = [
   { route: "geo", labelKey: "nav.geo" },
   { route: "validation", labelKey: "nav.validation" },
   { route: "logs", labelKey: "nav.logs" },
-  { route: "settings", labelKey: "nav.settings" }
+  { route: "settings", labelKey: "nav.settings" },
+  { route: "doc", labelKey: "nav.doc" }
 ];
 
 export const routeTitleKeys: Record<DashboardRoute, NavigationItem["labelKey"]> = {
@@ -17,7 +18,8 @@ export const routeTitleKeys: Record<DashboardRoute, NavigationItem["labelKey"]> 
   geo: "nav.geo",
   validation: "nav.validation",
   logs: "nav.logs",
-  settings: "nav.settings"
+  settings: "nav.settings",
+  doc: "nav.doc"
 };
 
 export function toRoute(hash: string): DashboardRoute {

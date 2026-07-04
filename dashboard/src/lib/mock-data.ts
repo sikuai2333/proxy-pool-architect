@@ -32,13 +32,13 @@ export const mockStats: DashboardStats = {
   success_rate: 0.72,
   last_fetch_at: now(),
   last_validate_at: now(),
-  redis_status: "ok",
+  db_status: "ok",
   scheduler_status: "running"
 };
 
 export const mockHealth: HealthStatus = {
   status: "ok",
-  redis: "ok",
+  db: "ok",
   scheduler: "running"
 };
 

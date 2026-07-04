@@ -3,8 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 from app.models.proxy import ProxyEndpoint
 from app.services.cooldown_service import CooldownService
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def make_proxy(proxy_id: str, cooldown_until: str | None) -> ProxyEndpoint:
@@ -20,7 +19,7 @@ def make_proxy(proxy_id: str, cooldown_until: str | None) -> ProxyEndpoint:
 
 def test_cooldown_service_releases_expired_proxies_to_raw_pool() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         expired = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
         future = (datetime.now(UTC) + timedelta(seconds=300)).isoformat()
         await store.add_proxy("cooldown", make_proxy("http-1.2.3.4-8080", expired))

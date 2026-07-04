@@ -1,12 +1,12 @@
 from datetime import UTC, datetime
 
 from app.models.proxy import ProxyEndpoint
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import parse_utc_datetime
 
 
 class CooldownService:
-    def __init__(self, store: RedisStore) -> None:
+    def __init__(self, store: SQLiteStore) -> None:
         self._store = store
 
     async def release_expired(self, limit: int = 1000) -> list[ProxyEndpoint]:

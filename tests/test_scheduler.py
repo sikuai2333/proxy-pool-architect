@@ -1,7 +1,6 @@
 from app.core.config import Settings
 from app.core.scheduler import FETCH_JOB_ID, VALIDATE_JOB_ID, SchedulerService
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def test_scheduler_registers_fetch_and_validate_jobs_without_running_them() -> None:
@@ -10,7 +9,7 @@ def test_scheduler_registers_fetch_and_validate_jobs_without_running_them() -> N
         fetch_interval_seconds=60,
         validate_interval_seconds=30,
     )
-    scheduler = SchedulerService(settings, RedisStore(FakeRedis()))
+    scheduler = SchedulerService(settings, SQLiteStore(":memory:"))
 
     scheduler.register_jobs()
 
@@ -20,7 +19,7 @@ def test_scheduler_registers_fetch_and_validate_jobs_without_running_them() -> N
 
 def test_scheduler_start_is_noop_when_disabled() -> None:
     settings = Settings(scheduler_enabled=False)
-    scheduler = SchedulerService(settings, RedisStore(FakeRedis()))
+    scheduler = SchedulerService(settings, SQLiteStore(":memory:"))
 
     scheduler.start()
 

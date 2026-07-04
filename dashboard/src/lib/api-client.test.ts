@@ -19,7 +19,7 @@ describe("dashboard API client", () => {
     const overview = await client.getOverview();
 
     expect(overview.stats.raw).toBeGreaterThan(0);
-    expect(overview.stats.redis_status).toBe("ok");
+    expect(overview.stats.db_status).toBe("ok");
     expect(overview.health.scheduler).toBe("running");
   });
 
@@ -118,7 +118,7 @@ describe("dashboard API client", () => {
             app: "ProxyPool Architect",
             version: "0.1.0",
             environment: "dev",
-            redis_configured: true
+            db_configured: true
           }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         )
@@ -145,7 +145,7 @@ describe("dashboard API client", () => {
     const overview = await client.getOverview();
 
     expect(overview.stats.elite).toBe(1);
-    expect(overview.stats.redis_status).toBe("ok");
+    expect(overview.stats.db_status).toBe("ok");
     expect(overview.health.scheduler).toBe("unknown");
   });
 

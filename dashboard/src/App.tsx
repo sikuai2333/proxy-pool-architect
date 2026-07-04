@@ -14,6 +14,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { ProxiesPage } from "./pages/ProxiesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ValidationPage } from "./pages/ValidationPage";
+import { DocPage } from "./pages/DocPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import type { AuthSessionStatus, DashboardRoute } from "./types";
 
@@ -80,6 +81,10 @@ function renderRoute(route: DashboardRoute, title: string) {
 
   if (route === "settings") {
     return <SettingsPage />;
+  }
+
+  if (route === "doc") {
+    return <DocPage />;
   }
 
   return <PlaceholderPage title={title} />;

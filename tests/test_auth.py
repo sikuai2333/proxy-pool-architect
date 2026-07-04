@@ -1,14 +1,15 @@
+import tempfile
+
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
 from app.main import create_app
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def make_client() -> TestClient:
     app = create_app()
-    app.state.store = RedisStore(FakeRedis())
+    app.state.store = SQLiteStore(tempfile.mktemp(suffix=".db"))
     return TestClient(app)
 
 
@@ -21,7 +22,7 @@ def restore_settings(snapshot) -> None:
 def test_auth_session_reports_disabled_by_default() -> None:
     client = make_client()
 
-    response = client.get("/auth/session")
+    response = client.get("/api/auth/session")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -42,25 +43,25 @@ def test_login_creates_cookie_session_and_protects_routes() -> None:
     try:
         client = make_client()
 
-        unauthenticated = client.get("/settings")
+        unauthenticated = client.get("/api/settings")
         assert unauthenticated.status_code == 401
 
         login = client.post(
-            "/auth/login",
+            "/api/auth/login",
             json={"username": "admin", "password": "test-password-2333"},
         )
         assert login.status_code == 200
         assert login.json()["authenticated"] is True
         assert "proxy_pool_session=" in login.headers["set-cookie"]
 
-        protected = client.get("/settings")
+        protected = client.get("/api/settings")
         assert protected.status_code == 200
 
-        logout = client.post("/auth/logout")
+        logout = client.post("/api/auth/logout")
         assert logout.status_code == 200
         assert logout.json()["authenticated"] is False
 
-        after_logout = client.get("/settings")
+        after_logout = client.get("/api/settings")
         assert after_logout.status_code == 401
     finally:
         restore_settings(original)
@@ -75,7 +76,7 @@ def test_basic_auth_allows_api_access_when_enabled() -> None:
     try:
         client = make_client()
 
-        response = client.get("/stats", auth=("admin", "test-password-2333"))
+        response = client.get("/api/stats", auth=("admin", "test-password-2333"))
 
         assert response.status_code == 200
         assert "total" in response.json()

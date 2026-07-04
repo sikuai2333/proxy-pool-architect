@@ -33,8 +33,7 @@ class Settings(BaseSettings):
     gzip_minimum_size: int = Field(default=1024, ge=0)
     log_level: str = "INFO"
     log_json: bool = False
-    redis_url: str = "redis://localhost:6379/0"
-    proxy_list_cache_ttl_seconds: int = Field(default=10, ge=0)
+    db_path: str = "data/proxy_pool.db"
 
     provider_static_enabled: bool = True
     provider_static_proxies: list[str] = Field(default_factory=list)
@@ -44,6 +43,7 @@ class Settings(BaseSettings):
     provider_url_concurrency: int = Field(default=5, ge=1)
     provider_config_file: str = "config/providers.yaml"
     provider_plugin_allowed_prefixes: list[str] = Field(default_factory=lambda: ["app.providers."])
+    github_mirrors: list[str] = Field(default_factory=list)
 
     geo_enabled: bool = False
     geo_file: str = "config/geo.csv"
@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     min_elite_score: int = 80
     cooldown_seconds: int = Field(default=1800, ge=1)
     session_affinity_ttl_seconds: int = Field(default=3600, ge=1)
+
+    gateway_enabled: bool = False
+    gateway_port: int = 7890
+    gateway_host: str = "127.0.0.1"
+    gateway_default_country: str | None = None
+    gateway_default_scheme: str | None = None
+    gateway_default_strategy: str = "best"
 
     scheduler_enabled: bool = False
     fetch_interval_seconds: int = Field(default=1800, ge=1)
@@ -76,7 +83,7 @@ class Settings(BaseSettings):
         if not isinstance(values, dict):
             return values
 
-        for field_name in ("cors_allowed_origins", "allowed_hosts"):
+        for field_name in ("cors_allowed_origins", "allowed_hosts", "github_mirrors"):
             value = values.get(field_name)
             if value is None or isinstance(value, list):
                 continue

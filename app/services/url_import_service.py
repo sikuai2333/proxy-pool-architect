@@ -11,7 +11,8 @@ from app.core.config import Settings
 from app.models.proxy import ProxyEndpoint
 from app.models.url_import import ProxyListFileType, ProxyUrlImportResponse
 from app.services.geo_service import GeoResolver
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
+from app.utils.github_mirror import build_mirror_urls, log_mirror_attempt
 from app.utils.proxy_text import parse_subscription_content
 
 MAX_PROXY_URL_BYTES = 1_048_576
@@ -27,7 +28,7 @@ class ProxyUrlImportError(ValueError):
 class ProxyUrlImportService:
     def __init__(
         self,
-        store: RedisStore,
+        store: SQLiteStore,
         settings: Settings,
         downloader: Callable[[str], Awaitable[str]] | None = None,
     ) -> None:
@@ -69,29 +70,39 @@ class ProxyUrlImportService:
         )
 
     async def _download_text(self, url: str) -> str:
+        mirrors = self._settings.github_mirrors or None
+        urls_to_try = build_mirror_urls(url, mirrors)
+
+        last_exc: Exception | None = None
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(self._settings.provider_url_timeout_seconds),
-            follow_redirects=False,
+            follow_redirects=True,
         ) as client:
-            try:
-                response = await client.get(url)
-            except httpx.HTTPError as exc:
-                raise ProxyUrlImportError(
-                    f"failed to fetch proxy URL: {exc.__class__.__name__}",
-                    status_code=502,
-                ) from exc
+            for try_url in urls_to_try:
+                if try_url != url:
+                    log_mirror_attempt(try_url, url)
+                try:
+                    response = await client.get(try_url)
+                except httpx.HTTPError as exc:
+                    last_exc = exc
+                    continue
 
-        if response.status_code >= 400:
-            raise ProxyUrlImportError(
-                f"proxy URL returned status {response.status_code}",
-                status_code=502,
-            )
-        if len(response.content) > MAX_PROXY_URL_BYTES:
-            raise ProxyUrlImportError(
-                f"proxy URL content exceeds {MAX_PROXY_URL_BYTES} bytes",
-                status_code=413,
-            )
-        return response.text
+                if response.status_code >= 400:
+                    last_exc = RuntimeError(f"HTTP {response.status_code}")
+                    continue
+
+                if len(response.content) > MAX_PROXY_URL_BYTES:
+                    raise ProxyUrlImportError(
+                        f"proxy URL content exceeds {MAX_PROXY_URL_BYTES} bytes",
+                        status_code=413,
+                    )
+                return response.text
+
+        raise ProxyUrlImportError(
+            f"failed to fetch proxy URL (tried {len(urls_to_try)} mirrors): "
+            f"{last_exc.__class__.__name__ if last_exc else 'unknown'}",
+            status_code=502,
+        )
 
     def _validate_source_url(self, url: str) -> None:
         parsed = urlparse(url)

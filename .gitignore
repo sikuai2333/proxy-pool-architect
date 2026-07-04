@@ -36,14 +36,15 @@ htmlcov/
 .idea/
 .vscode/
 .pnpm-store/
+.uv-cache/
+.codex/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
 
-# Docker and local volumes
-.docker/
-docker-data/
+# Runtime data (SQLite database)
+data/
 
 # Frontend dashboard artifacts
 dashboard/node_modules/

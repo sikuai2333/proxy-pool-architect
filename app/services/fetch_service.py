@@ -2,7 +2,7 @@ from app.models.provider import ProviderFetchResult
 from app.models.proxy import ProxyEndpoint
 from app.providers.manager import ProviderManager
 from app.services.geo_service import GeoResolver
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso
 
 
@@ -22,7 +22,7 @@ class FetchService:
     def __init__(
         self,
         provider_manager: ProviderManager,
-        store: RedisStore,
+        store: SQLiteStore,
         geo_resolver: GeoResolver | None = None,
     ) -> None:
         self._provider_manager = provider_manager

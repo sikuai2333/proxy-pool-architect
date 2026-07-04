@@ -1,42 +1,124 @@
 sources:
-  - name: proxifly-http
-    repo: https://github.com/proxifly/free-proxy-list
-    repo_last_commit_utc: "2026-05-01T08:01:18Z"
-    file_type: all
-    url: https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/http/data.txt
-    notes: Full http:// URLs. Repository README says the list is updated every 5 minutes.
-
-  - name: proxifly-socks5
-    repo: https://github.com/proxifly/free-proxy-list
-    repo_last_commit_utc: "2026-05-01T08:01:18Z"
-    file_type: all
-    url: https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/socks5/data.txt
-    notes: Full socks5:// URLs. Repository README says the list is updated every 5 minutes.
-
+  # ── 1. TheSpeedX/PROXY-List (14k+ stars, daily auto-update) ──
   - name: thespeedx-http
     repo: https://github.com/TheSpeedX/PROXY-List
-    repo_last_commit_utc: "2026-05-01T06:11:09Z"
     file_type: http
-    url: https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
-    notes: Bare host:port HTTP list. Repository README includes an explicit Last Updated timestamp.
+    url: https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt
+    notes: Bare host:port HTTP list. Auto-updated daily, ~41M proxies total.
+
+  - name: thespeedx-socks4
+    repo: https://github.com/TheSpeedX/PROXY-List
+    file_type: socks4
+    url: https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt
+    notes: Bare host:port SOCKS4 list. Auto-updated daily.
 
   - name: thespeedx-socks5
     repo: https://github.com/TheSpeedX/PROXY-List
-    repo_last_commit_utc: "2026-05-01T06:11:09Z"
     file_type: socks5
-    url: https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
-    notes: Bare host:port SOCKS5 list. Repository README includes an explicit Last Updated timestamp.
+    url: https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt
+    notes: Bare host:port SOCKS5 list. Auto-updated daily.
 
+  # ── 2. monosans/proxy-list (daily, GitHub Actions, cleanest quality) ──
+  - name: monosans-http
+    repo: https://github.com/monosans/proxy-list
+    file_type: http
+    url: https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
+    notes: Bare host:port HTTP list. GitHub Actions auto-update daily.
+
+  - name: monosans-socks4
+    repo: https://github.com/monosans/proxy-list
+    file_type: socks4
+    url: https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt
+    notes: Bare host:port SOCKS4 list. GitHub Actions auto-update daily.
+
+  - name: monosans-socks5
+    repo: https://github.com/monosans/proxy-list
+    file_type: socks5
+    url: https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt
+    notes: Bare host:port SOCKS5 list. GitHub Actions auto-update daily.
+
+  # ── 3. hookzof/socks5_list (daily, SOCKS5 only) ──
+  - name: hookzof-socks5
+    repo: https://github.com/hookzof/socks5_list
+    file_type: socks5
+    url: https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt
+    notes: Bare host:port SOCKS5 list. Automated daily update, go-to SOCKS5 source.
+
+  # ── 4. clarketm/proxy-list (mixed protocols) ──
+  - name: clarketm-mixed
+    repo: https://github.com/clarketm/proxy-list
+    file_type: http
+    url: https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
+    notes: Bare host:port mixed list. Includes country/speed/uptime metadata.
+
+  # ── 5. mmpx12/proxy-list (daily, all protocols) ──
+  - name: mmpx12-http
+    repo: https://github.com/mmpx12/proxy-list
+    file_type: http
+    url: https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt
+    notes: Bare host:port HTTP list. Updated daily.
+
+  - name: mmpx12-socks5
+    repo: https://github.com/mmpx12/proxy-list
+    file_type: socks5
+    url: https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks5.txt
+    notes: Bare host:port SOCKS5 list. Updated daily.
+
+  # ── 6. proxifly/free-proxy-list (full URLs, every 5 min) ──
+  - name: proxifly-http
+    repo: https://github.com/proxifly/free-proxy-list
+    file_type: all
+    url: https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt
+    notes: Full http:// URLs. Updated every 5 minutes.
+
+  - name: proxifly-socks5
+    repo: https://github.com/proxifly/free-proxy-list
+    file_type: all
+    url: https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt
+    notes: Full socks5:// URLs. Updated every 5 minutes.
+
+  # ── 7. iplocate/free-proxy-list (every 30 min) ──
   - name: iplocate-http
     repo: https://github.com/iplocate/free-proxy-list
-    repo_last_commit_utc: "2026-05-01T08:27:31Z"
     file_type: http
     url: https://raw.githubusercontent.com/iplocate/free-proxy-list/main/protocols/http.txt
-    notes: Bare host:port HTTP list. Repository README says the list is updated every 30 minutes.
+    notes: Bare host:port HTTP list. Updated every 30 minutes.
 
   - name: iplocate-socks5
     repo: https://github.com/iplocate/free-proxy-list
-    repo_last_commit_utc: "2026-05-01T08:27:31Z"
     file_type: socks5
     url: https://raw.githubusercontent.com/iplocate/free-proxy-list/main/protocols/socks5.txt
-    notes: Bare host:port SOCKS5 list. Repository README says the list is updated every 30 minutes.
+    notes: Bare host:port SOCKS5 list. Updated every 30 minutes.
+
+  # ── 8. databay-labs/free-proxy-list (daily, all protocols) ──
+  - name: databay-http
+    repo: https://github.com/databay-labs/free-proxy-list
+    file_type: http
+    url: https://raw.githubusercontent.com/databay-labs/free-proxy-list/master/http.txt
+    notes: Bare host:port HTTP list. Updated daily.
+
+  - name: databay-socks5
+    repo: https://github.com/databay-labs/free-proxy-list
+    file_type: socks5
+    url: https://raw.githubusercontent.com/databay-labs/free-proxy-list/master/socks5.txt
+    notes: Bare host:port SOCKS5 list. Updated daily.
+
+  # ── 9. MuRongPIG/Proxy-Master (daily, all protocols) ──
+  - name: proxymaster-http
+    repo: https://github.com/MuRongPIG/Proxy-Master
+    file_type: http
+    url: https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/http.txt
+    notes: Bare host:port HTTP list. Updated daily.
+
+  - name: proxymaster-socks5
+    repo: https://github.com/MuRongPIG/Proxy-Master
+    file_type: socks5
+    url: https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks5.txt
+    notes: Bare host:port SOCKS5 list. Updated daily.
+
+  # ── 10. zloi-user/hideip.me (daily) ──
+  - name: hideip-http
+    repo: https://github.com/zloi-user/hideip.me
+    file_type: http
+    url: https://raw.githubusercontent.com/zloi-user/hideip.me/main/http.txt
+    notes: Bare host:port HTTP list. Updated daily from hideip.me.

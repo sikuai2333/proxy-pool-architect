@@ -1,1 +1,1 @@
-"""Redis-backed storage primitives."""
+"""SQLite-backed storage primitives."""

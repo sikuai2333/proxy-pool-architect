@@ -20,14 +20,14 @@ from app.models.url_import import ProxyListFileType, ProxyUrlImportResponse
 from app.providers.manager import ProviderManager
 from app.services.runtime_activity_service import RuntimeActivityService
 from app.services.url_import_service import ProxyUrlImportError, ProxyUrlImportService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso
 
 
 class DashboardApiService:
     def __init__(
         self,
-        store: RedisStore,
+        store: SQLiteStore,
         settings: Settings,
         scheduler: SchedulerService,
         runtime_activity: RuntimeActivityService,

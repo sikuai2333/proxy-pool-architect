@@ -1,10 +1,10 @@
 from app.models.api import StatsResponse
 from app.storage.keys import POOL_NAMES
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 
 class StatsService:
-    def __init__(self, store: RedisStore) -> None:
+    def __init__(self, store: SQLiteStore) -> None:
         self._store = store
 
     async def get_stats(self) -> StatsResponse:

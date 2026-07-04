@@ -5,12 +5,12 @@ from fastapi.responses import Response
 
 from app.api.dependencies import get_store
 from app.services.metrics_service import METRICS_CONTENT_TYPE, MetricsService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 router = APIRouter(tags=["metrics"])
 
 
-def get_metrics_service(store: Annotated[RedisStore, Depends(get_store)]) -> MetricsService:
+def get_metrics_service(store: Annotated[SQLiteStore, Depends(get_store)]) -> MetricsService:
     return MetricsService(store)
 
 

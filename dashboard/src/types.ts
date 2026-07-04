@@ -38,13 +38,13 @@ export interface DashboardStats {
   success_rate: number | null;
   last_fetch_at?: string | null;
   last_validate_at?: string | null;
-  redis_status: "ok" | "error" | "unknown";
+  db_status: "ok" | "error" | "unknown";
   scheduler_status: "running" | "stopped" | "unknown";
 }
 
 export interface HealthStatus {
   status: "ok" | "error" | "unknown";
-  redis: "ok" | "error" | "unknown";
+  db: "ok" | "error" | "unknown";
   scheduler: "running" | "stopped" | "unknown";
 }
 
@@ -200,7 +200,8 @@ export type DashboardRoute =
   | "geo"
   | "validation"
   | "logs"
-  | "settings";
+  | "settings"
+  | "doc";
 
 export interface NavigationItem {
   route: DashboardRoute;

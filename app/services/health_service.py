@@ -11,7 +11,7 @@ def build_health_response(
         app=settings.app_name,
         version=settings.app_version,
         environment=settings.app_env,
-        redis_configured=bool(settings.redis_url),
-        redis="ok" if settings.redis_url else "unknown",
+        db_configured=bool(settings.db_path),
+        db="ok" if settings.db_path else "unknown",
         scheduler="running" if scheduler_running else "stopped",
     )

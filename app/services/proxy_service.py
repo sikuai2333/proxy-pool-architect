@@ -1,13 +1,13 @@
 from app.models.api import ReportProxyRequest
 from app.models.proxy import ProxyEndpoint, ProxyFilters, ProxyPool
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso, utc_plus_seconds_iso
 
 
 class ProxyService:
     def __init__(
         self,
-        store: RedisStore,
+        store: SQLiteStore,
         cooldown_seconds: int = 1800,
         session_affinity_ttl_seconds: int = 3600,
     ) -> None:

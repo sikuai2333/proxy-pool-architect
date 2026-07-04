@@ -13,7 +13,7 @@ from app.services.fetch_service import FetchService
 from app.services.geo_service import GeoResolver
 from app.services.runtime_activity_service import RuntimeActivityService
 from app.services.validate_service import ValidateService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso
 from app.validators.anonymity import AnonymityValidator
 from app.validators.connectivity import ConnectivityValidator
@@ -27,7 +27,7 @@ class SchedulerService:
     def __init__(
         self,
         settings: Settings,
-        store: RedisStore,
+        store: SQLiteStore,
         runtime_activity: RuntimeActivityService | None = None,
     ) -> None:
         self._settings = settings

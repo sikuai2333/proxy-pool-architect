@@ -164,9 +164,9 @@ export function OverviewPage() {
               </strong>
             </div>
             <div>
-              <span>{t("overview.redis")}</span>
-              <strong className={`status-text status-${stats.redis_status}`}>
-                {t(`status.${stats.redis_status}` as TranslationKey)}
+              <span>{t("overview.database")}</span>
+              <strong className={`status-text status-${stats.db_status}`}>
+                {t(`status.${stats.db_status}` as TranslationKey)}
               </strong>
             </div>
             <div>

@@ -95,5 +95,5 @@ class StatsResponse(BaseModel):
     cooldown: int = 0
     last_fetch_at: str | None = None
     last_validate_at: str | None = None
-    redis_status: Literal["ok", "error", "unknown"] = "unknown"
+    db_status: Literal["ok", "error", "unknown"] = "unknown"
     scheduler_status: Literal["running", "stopped", "unknown"] = "unknown"

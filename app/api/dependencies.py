@@ -4,11 +4,11 @@ from fastapi import Request
 
 from app.core.scheduler import SchedulerService
 from app.services.runtime_activity_service import RuntimeActivityService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 
-def get_store(request: Request) -> RedisStore:
-    return cast(RedisStore, request.app.state.store)
+def get_store(request: Request) -> SQLiteStore:
+    return cast(SQLiteStore, request.app.state.store)
 
 
 def get_scheduler(request: Request) -> SchedulerService:

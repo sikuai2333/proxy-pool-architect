@@ -4,11 +4,10 @@ import httpx
 
 from app.models.proxy import ProxyEndpoint
 from app.services.validate_service import ValidateService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.validators.anonymity import AnonymityValidator
 from app.validators.connectivity import ConnectivityValidator
 from app.validators.protocol import ProtocolValidator
-from tests.fakes import FakeRedis
 
 
 def make_proxy(proxy_id: str = "http-1.2.3.4-8080") -> ProxyEndpoint:
@@ -138,7 +137,7 @@ def test_anonymity_validator_marks_unstructured_response_as_anonymous() -> None:
 
 def test_validate_service_moves_successful_elite_proxy_to_elite_pool() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         proxy = await store.add_proxy("raw", make_proxy())
         connectivity_transport = httpx.MockTransport(
             lambda request: httpx.Response(200, json={"origin": "1.2.3.4"})
@@ -175,7 +174,7 @@ def test_validate_service_moves_successful_elite_proxy_to_elite_pool() -> None:
 
 def test_validate_service_moves_failed_proxy_to_cooldown_pool() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         proxy = await store.add_proxy("raw", make_proxy())
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -212,7 +211,7 @@ def test_validate_service_moves_failed_proxy_to_cooldown_pool() -> None:
 
 def test_validate_service_moves_repeated_failure_to_dead_pool() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         proxy = await store.add_proxy(
             "raw",
             make_proxy().model_copy(update={"fail_count": 4, "consecutive_fail_count": 4}),

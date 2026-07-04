@@ -6,13 +6,13 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.api.dependencies import get_store
 from app.core.config import get_settings
 from app.services.auth_service import AuthenticatedAdmin, AuthService
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 
 basic_security = HTTPBasic(auto_error=False)
 
 
 def get_auth_service(
-    store: Annotated[RedisStore, Depends(get_store)],
+    store: Annotated[SQLiteStore, Depends(get_store)],
 ) -> AuthService:
     return AuthService(store=store, settings=get_settings())
 

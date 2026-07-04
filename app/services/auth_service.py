@@ -8,7 +8,7 @@ from fastapi.security import HTTPBasicCredentials
 
 from app.core.config import Settings
 from app.models.auth import AuthMethod, AuthSession, AuthStatusResponse
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_now_iso, utc_plus_seconds_iso
 
 
@@ -17,7 +17,7 @@ class AuthenticatedAdmin(AuthSession):
 
 
 class AuthService:
-    def __init__(self, store: RedisStore, settings: Settings) -> None:
+    def __init__(self, store: SQLiteStore, settings: Settings) -> None:
         self._store = store
         self._settings = settings
 

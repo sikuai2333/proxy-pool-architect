@@ -4,8 +4,7 @@ import pytest
 
 from app.core.config import Settings
 from app.services.url_import_service import ProxyUrlImportError, ProxyUrlImportService
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def test_url_import_service_fetches_deduplicates_and_stores_raw_proxies() -> None:
@@ -18,7 +17,7 @@ def test_url_import_service_fetches_deduplicates_and_stores_raw_proxies() -> Non
         """
 
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         service = ProxyUrlImportService(
             store=store,
             settings=Settings(),
@@ -54,7 +53,7 @@ def test_url_import_service_fetches_deduplicates_and_stores_raw_proxies() -> Non
 def test_url_import_service_blocks_private_source_urls_when_enabled() -> None:
     async def run() -> None:
         service = ProxyUrlImportService(
-            store=RedisStore(FakeRedis()),
+            store=SQLiteStore(":memory:"),
             settings=Settings(),
             downloader=lambda _: _resolve("1.2.3.4:8080"),
         )
@@ -78,7 +77,7 @@ def test_url_import_service_reports_v2ray_nodes_as_adapter_required() -> None:
         )
 
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         service = ProxyUrlImportService(
             store=store,
             settings=Settings(),

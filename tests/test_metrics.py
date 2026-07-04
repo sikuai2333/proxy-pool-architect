@@ -2,13 +2,12 @@ import asyncio
 
 from app.models.proxy import ProxyEndpoint
 from app.services.metrics_service import MetricsService
-from app.storage.redis_store import RedisStore
-from tests.fakes import FakeRedis
+from app.storage.sqlite_store import SQLiteStore
 
 
 def test_metrics_service_renders_prometheus_text() -> None:
     async def run() -> None:
-        store = RedisStore(FakeRedis())
+        store = SQLiteStore(":memory:")
         await store.add_proxy(
             "checked",
             ProxyEndpoint(

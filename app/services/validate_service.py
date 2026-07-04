@@ -3,7 +3,7 @@ import asyncio
 from app.models.proxy import ProxyEndpoint, ProxyPool
 from app.models.validation import ProxyValidationOutcome, ValidationResult
 from app.services.scoring_service import apply_validation_score
-from app.storage.redis_store import RedisStore
+from app.storage.sqlite_store import SQLiteStore
 from app.utils.time import utc_plus_seconds_iso
 from app.validators.anonymity import AnonymityValidator
 from app.validators.connectivity import ConnectivityValidator
@@ -13,7 +13,7 @@ from app.validators.protocol import ProtocolValidator
 class ValidateService:
     def __init__(
         self,
-        store: RedisStore,
+        store: SQLiteStore,
         protocol_validator: ProtocolValidator,
         connectivity_validator: ConnectivityValidator,
         anonymity_validator: AnonymityValidator,
