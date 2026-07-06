@@ -4,43 +4,46 @@ ProxyPool Architect is a modern Python proxy pool system built with FastAPI and 
 This repository is intended for lawful, authorized networking, testing, and proxy quality
 management workflows only.
 
-## Current Scope
+## Features
 
-The current implementation contains the Phase 0 application skeleton, Phase 1 storage
-foundation, Phase 2 provider system, Phase 3 validation layer, Phase 4 API service, and
-Phase 5 scheduler integration, Phase 6 basic dashboard, Phase 7 production basics, and
-Phase 8 admin authentication:
-
-- FastAPI application entrypoint at `app/main.py`
-- typed `/api/health` endpoint
-- settings via `pydantic-settings`
-- loguru logging setup
-- SQLite storage backend (no external services required)
-- pytest, ruff, and mypy configuration
-- `ProxyEndpoint` and `ProxyFilters` models
-- SQLite-backed proxy CRUD with indexed filtered queries
-- score-based best-proxy selection from `elite` then `checked`
-- proxy URL parsing for HTTP, HTTPS, SOCKS4, and SOCKS5 sources
-- `StaticProvider`, `UrlListProvider`, `ProviderManager`, and `FetchService`
-- dashboard-triggered URL import with auto-detected plain text, Clash/FlClash, and V2Ray/Xray subscriptions
-- YAML-driven Provider configuration with dynamic trusted provider loading
-- Clash/FlClash subscription parsing for HTTP/SOCKS nodes and local Tor SOCKS Provider
-- CoreAdapter Provider for Clash/Mihomo/sing-box style local adapter cores
-- local CIDR-based Geo enrichment for country and ASN fields
-- `ProtocolValidator`, `ConnectivityValidator`, and `AnonymityValidator`
-- `ValidateService` with bounded concurrency, scoring, and pool movement
-- cooldown handling for failed proxies and scheduled release back to `raw`
-- optional `session_id` affinity for stable per-task proxy selection
-- `/api/proxy`, `/api/proxy/list`, `/api/proxy/{proxy_id}`, `/api/proxy/report`, `/api/stats`, and `DELETE /api/proxy/{proxy_id}` APIs
-- dashboard support APIs for `/api/providers`, `/api/providers/{provider_name}`, `/api/geo/summary`,
-  `/api/validation/jobs`, `/api/events`, `/api/settings`, and `PATCH /api/settings`
-- admin auth via `/api/auth/session`, `/api/auth/login`, `/api/auth/logout`, browser session cookies,
-  and HTTP Basic Auth for direct API clients
-- APScheduler-backed fetch and validation jobs, disabled by default
-- React dashboard SPA served directly by FastAPI at `/`
-- Prometheus-compatible `/api/metrics`, optional JSON logs, and CI workflow
+- SQLite storage backend（无需 Redis 等外部服务）
+- 多来源代理采集：静态配置、URL 列表、Clash/V2Ray 订阅、本地适配器核心
+- 协议/连通性/匿名性三层验证，评分淘汰与冷却池
+- FastAPI REST API：`/api/proxy`、`/api/stats`、`/api/health`、`/api/metrics`
+- React 仪表盘 SPA，由 FastAPI 直接服务
+- APScheduler 后台定时采集与验证
+- 可选：本地 TCP 代理网关、CIDR GeoIP 富化、管理员认证
+- Docker 一键部署，适用于 NAS
 
 ## Setup
+
+### Docker（推荐，适用于 NAS 部署）
+
+```bash
+# 1. 克隆项目
+git clone <your-repo-url> && cd proxy-pool-architect
+
+# 2. 创建 .env（按需修改）
+cp .env.example .env
+
+# 3. 构建并启动
+docker compose up -d
+
+# 4. 访问
+#    浏览器打开 http://<NAS-IP>:8000
+#    代理 API: http://<NAS-IP>:8000/api/proxy
+```
+
+数据持久化：`data/` 目录通过 volume 挂载，SQLite 数据库存于其中。
+配置文件：`config/` 目录以只读方式挂载，可直接编辑宿主机上的文件。
+
+更新：
+
+```bash
+git pull && docker compose up -d --build
+```
+
+### 本地开发
 
 Install dependencies:
 
@@ -212,10 +215,8 @@ curl -X POST "http://localhost:8000/api/providers/import-url" \
 
 ## Scheduler
 
-Phase 5 adds APScheduler integration for background fetch and validation work. The scheduler is
-disabled by default.
-
-Enable it explicitly:
+APScheduler provides background proxy fetching and validation.
+Docker 部署默认开启；本地开发默认关闭，需手动启用：
 
 ```bash
 SCHEDULER_ENABLED=true uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -263,7 +264,11 @@ GitHub Actions is configured in `.github/workflows/ci.yml` to run:
 
 ## Security
 
-See `docs/security.md` for operational boundaries and deployment guidance.
+- Proxy credentials are masked in API responses
+- Admin auth via session cookies (HTTP) or HTTP Basic Auth
+- Keep `AUTH_SESSION_SECURE=false` when accessing over LAN without HTTPS
+- The project must not be used for CAPTCHA bypass, anti-bot evasion, credential abuse,
+  account automation, spam, or attacks against third-party systems
 
 ## Configuration
 
@@ -310,8 +315,3 @@ as the starting point.
 | `VALIDATE_INTERVAL_SECONDS` | `600` | Validation job interval |
 | `VALIDATE_BATCH_SIZE` | `100` | Max raw proxies validated per job run |
 | `METRICS_ENABLED` | `true` | Enable `/api/metrics` endpoint |
-
-## Safety Boundary
-
-Do not use this project for CAPTCHA bypass, anti-bot evasion, credential abuse, account
-automation, spam, target-specific block circumvention, or attacks against third-party systems.
